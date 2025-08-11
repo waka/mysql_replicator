@@ -1,0 +1,11 @@
+# bundler
+/.bundle/
+/vendor/bundle/
+
+# rspec failure tracking
+.rspec_status
+
+# etc
+/doc/
+/pkg/
+/tmp/
