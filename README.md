@@ -20,16 +20,16 @@ gem install mysql_replicator
 ## Usage
 
 ```rb
-config = MysqlRepliactor::Config.new do |c|
-  c.mysql_host     = 'your_mysql_host' # default 127.0.0.1
-  c.mysql_port     = 3307              # default 3306
-  c.mysql_user     = 'username'        # default root
-  c.mysql_password = 'password'        # default nil
-end
-
-replicator = MysqlReplicator.connect!(config)
+# connect and prepare replication
+replicator = MysqlReplicator.new({
+  host: 'your_mysql_host' # default 127.0.0.1
+  port: 3307              # default 3306
+  user: 'username'        # default root
+  password: 'password'    # default nil
+})
+# receive binlog event
 replicator.handle_binlog_event do |event|
-  # handle binlog event
+  # some processing...
 end
 ```
 

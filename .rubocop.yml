@@ -6,7 +6,13 @@ AllCops:
 Metrics/AbcSize:
   Enabled: false
 
+Metrics/BlockNesting:
+  Enabled: false
+
 Metrics/ClassLength:
+  Enabled: false
+
+Metrics/CyclomaticComplexity:
   Enabled: false
 
 Metrics/MethodLength:
@@ -15,7 +21,19 @@ Metrics/MethodLength:
 Metrics/ModuleLength:
   Enabled: false
 
+Metrics/PerceivedComplexity:
+  Enabled: false
+
+Style/BitwisePredicate:
+  Enabled: false
+
 Style/Documentation:
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Enabled: false
+
+Style/RescueStandardError:
   Enabled: false
 
 Style/StringLiterals:
@@ -23,3 +41,9 @@ Style/StringLiterals:
 
 Style/StringLiteralsInInterpolation:
   EnforcedStyle: single_quotes
+
+Style/UnpackFirst:
+  Enabled: false
+
+Style/WordArray:
+  Enabled: false
