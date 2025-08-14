@@ -4,12 +4,15 @@ module MysqlReplicator
   module Connections
     class Handshake
       def self.perform(connection)
-        payload = connection.read_packet
-        parse_payload(payload)
+        handshake_response_packet = connection.read_packet
+        parse_handshake_response_packet(handshake_response_packet)
       end
 
-      def self.parse_payload(payload)
+      def self.parse_handshake_response_packet(packet)
+        payload = packet[:payload]
         offset = 0
+
+        MysqlReplicator::Logger.debug '===== Handshake Payload ====='
 
         protocol_version = payload[offset].unpack('C')[0]
         offset += 1
