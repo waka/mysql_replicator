@@ -36,6 +36,9 @@ Style/IfUnlessModifier:
 Style/RescueStandardError:
   Enabled: false
 
+Style/StringConcatenation:
+  Enabled: false
+
 Style/StringLiterals:
   EnforcedStyle: single_quotes
 
