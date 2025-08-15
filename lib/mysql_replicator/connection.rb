@@ -25,15 +25,14 @@ module MysqlReplicator
     end
 
     def connect
-      handshake_response = MysqlReplicator::Connections::Handshake.perform(self)
+      handshake_info = MysqlReplicator::Connections::Handshake.perform(self)
 
       MysqlReplicator::Connections::Auth.perform(
         self,
         @user,
         @password,
         @database,
-        handshake_response[:auth_plugin_name],
-        handshake_response[:auth_plugin_data]
+        handshake_info
       )
 
       @connected = true
@@ -44,7 +43,7 @@ module MysqlReplicator
     end
 
     def close
-      unless @socket.closed?
+      if @socket.closed?
         MysqlReplicator::Logger.warn 'Connection is closed'
         return
       end
@@ -66,21 +65,15 @@ module MysqlReplicator
 
       header_bytes = header.bytes
 
-      MysqlReplicator::Logger.debug '===== Received packet ====='
-
       # Extract packet length and sequence ID
       # MySQL packet length is 3 bytes, so calculate manually
       packet_length = header_bytes[0] + (header_bytes[1] << 8) + (header_bytes[2] << 16)
       sequence_id = header_bytes[3]
-      MysqlReplicator::Logger.debug "Received packet: length=#{packet_length}, sequence_id=#{sequence_id}"
-      MysqlReplicator::Logger.debug "Header (hex): #{header.unpack('H*')[0].scan(/.{2}/).join(' ')}"
 
       # Check SequenceID
       if sequence_id != @sequence_id
         MysqlReplicator::Logger.warn "SequenceID is mismatch: received:#{sequence_id}, expected:#{@sequence_id})"
       end
-      # Update SequenceID to next expected value
-      @sequence_id = (sequence_id + 1) % 256
 
       payload = @socket.read(packet_length)
       if payload.nil? || payload.length != packet_length
@@ -88,8 +81,10 @@ module MysqlReplicator
               "Failed to read packet payload: expected #{packet_length} bytes, got #{payload&.length || 0}"
       end
 
-      MysqlReplicator::Logger.debug "Data (hex): #{payload.unpack('C*').map { |b| format('%02x', b) }.join(' ')}"
-      MysqlReplicator::Logger.debug "Data: #{payload.gsub(/[^\x20-\x7e]/, '.')}"
+      debug_received_packet(packet_length, sequence_id, payload)
+
+      # Update SequenceID to next expected value
+      @sequence_id = (sequence_id + 1) % 256
 
       { length: packet_length, sequence_id: sequence_id, payload: payload }
     end
@@ -97,14 +92,11 @@ module MysqlReplicator
     def send_packet(payload)
       packet_length = payload.length
       header = [packet_length].pack('V')[0..2] + [@sequence_id].pack('C')
-
-      MysqlReplicator::Logger.debug '===== Send packet ====='
-      MysqlReplicator::Logger.debug "Send packet: length=#{packet_length}, sequence_id=#{@sequence_id}"
-      MysqlReplicator::Logger.debug "Header (hex): #{header.unpack('H*')[0].scan(/.{2}/).join(' ')}"
-      MysqlReplicator::Logger.debug "Data (hex): #{payload.unpack('C*').map { |b| format('%02x', b) }.join(' ')}"
-      MysqlReplicator::Logger.debug "Data: #{payload.gsub(/[^\x20-\x7e]/, '.')}"
-
       @socket.write(header + payload)
+
+      debug_send_packet(packet_length, @sequence_id, payload)
+
+      # Update SequenceID to next expected value
       @sequence_id = (@sequence_id + 1) % 256
     end
 
@@ -119,6 +111,26 @@ module MysqlReplicator
 
       response = read_packet
       response[:payload][0].unpack('C')[0] == 0x00
+    end
+
+    private
+
+    def debug_received_packet(packet_length, sequence_id, payload)
+      MysqlReplicator::Logger.debug '===== Start received packet ====='
+      MysqlReplicator::Logger.debug "Length: #{packet_length}"
+      MysqlReplicator::Logger.debug "Sequence ID: #{sequence_id}, Expected: #{@sequence_id}"
+      MysqlReplicator::Logger.debug "Payload (hex): #{payload.unpack('C*').map { |b| format('%02x', b) }.join(' ')}"
+      MysqlReplicator::Logger.debug "Payload: #{payload.gsub(/[^\x20-\x7e]/, '.')}"
+      MysqlReplicator::Logger.debug '===== End received packet ====='
+    end
+
+    def debug_send_packet(packet_length, sequence_id, payload)
+      MysqlReplicator::Logger.debug '===== Start send packet ====='
+      MysqlReplicator::Logger.debug "Length: #{packet_length}"
+      MysqlReplicator::Logger.debug "Sequence ID: #{sequence_id}"
+      MysqlReplicator::Logger.debug "Payload (hex): #{payload.unpack('C*').map { |b| format('%02x', b) }.join(' ')}"
+      MysqlReplicator::Logger.debug "Payload: #{payload.gsub(/[^\x20-\x7e]/, '.')}"
+      MysqlReplicator::Logger.debug '===== End send packet ====='
     end
   end
 end
