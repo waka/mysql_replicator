@@ -5,7 +5,7 @@ require 'logger'
 module MysqlReplicator
   class Logger
     @logger = ::Logger.new($stdout)
-    @logger.level = ENV.fetch('REPLICATOR_LOG_LEVEL', ::Logger::DEBUG)
+    @logger.level = ENV.fetch('MYSQL_REPLICATOR_LOG_LEVEL', ::Logger::DEBUG)
 
     class << self
       attr_writer :logger

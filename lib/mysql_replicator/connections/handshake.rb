@@ -6,6 +6,7 @@ module MysqlReplicator
       def self.perform(connection)
         handshake_response_packet = connection.read_packet
         handshake_info = parse_handshake_response_packet(handshake_response_packet)
+
         debug_handshake_info(handshake_info)
         handshake_info
       end
@@ -95,16 +96,17 @@ module MysqlReplicator
       end
 
       def self.debug_handshake_info(handshake_info)
-        MysqlReplicator::Logger.debug '===== Start Handshake Info ====='
-        MysqlReplicator::Logger.debug "Protocol version: #{handshake_info[:protocol_version]}"
-        MysqlReplicator::Logger.debug "Server version: #{handshake_info[:server_version]}"
-        MysqlReplicator::Logger.debug "Connection ID: #{handshake_info[:connection_id]}"
-        MysqlReplicator::Logger.debug "Capability flags: 0x#{handshake_info[:capability_flags].to_s(16).upcase}"
-        MysqlReplicator::Logger.debug "Character set: #{handshake_info[:charset]}"
-        MysqlReplicator::Logger.debug "Status flags: #{handshake_info[:status_flags]}"
-        MysqlReplicator::Logger.debug "Authentication plugin name: #{handshake_info[:auth_plugin_name]}"
-        MysqlReplicator::Logger.debug "Authentication plugin data: #{handshake_info[:auth_plugin_data].unpack('C*').map { |b| format('%02X', b) }.join(' ')}}"
-        MysqlReplicator::Logger.debug '===== End Handshake Info ====='
+        MysqlReplicator::Logger.debug \
+          "===== Start Handshake Info =====\n" \
+          "Protocol version: #{handshake_info[:protocol_version]}\n" \
+          "Server version: #{handshake_info[:server_version]}\n" \
+          "Connection ID: #{handshake_info[:connection_id]}\n" \
+          "Capability flags: 0x#{handshake_info[:capability_flags].to_s(16).upcase}\n" \
+          "Character set: #{handshake_info[:charset]}\n" \
+          "Status flags: #{handshake_info[:status_flags]}\n" \
+          "Authentication plugin name: #{handshake_info[:auth_plugin_name]}\n" \
+          "Authentication plugin data: #{handshake_info[:auth_plugin_data].unpack('C*').map { |b| format('%02X', b) }.join(' ')}\n" \
+          '===== End Handshake Info ====='
       end
     end
   end

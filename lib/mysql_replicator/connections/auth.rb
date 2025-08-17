@@ -14,31 +14,56 @@ module MysqlReplicator
       CLIENT_MULTI_RESULTS = 0x00020000
 
       def self.perform(connection, user, password, database, handshake_info)
-        # Auth with caching_sha2_password
-        auth_result = perform_auth(connection, user, password, database, handshake_info)
-        if auth_result == :success
-          MysqlReplicator::Logger.debug 'caching_sha2_password authentication successful!'
-          return
+        auth_plugin_name = handshake_info[:auth_plugin_name]
+        case auth_plugin_name
+        when 'caching_sha2_password'
+          caching_sha2_password_auth(connection, user, password, database, handshake_info)
+          MysqlReplicator::Logger.debug 'Authentication by caching_sha2_password is successful!'
+        when 'mysql_native_password'
+          mysql_native_password_auth(connection, password, handshake_info)
+          MysqlReplicator::Logger.debug 'Authentication by mysql_native_password is successful!'
+        else
+          raise MysqlReplicator::Error, "Unsupported authentication plugin: #{auth_plugin_name}"
         end
-
-        MysqlReplicator::Logger.debug 'trying caching_sha2_password with RSA encryption authentication'
-
-        # Auth with RSA encryption
-        rsa_encryption_auth_result = perform_rsa_encryption_auth(connection, password, handshake_info)
-        if rsa_encryption_auth_result == :success
-          MysqlReplicator::Logger.debug 'caching_sha2_password with RSA encryption authentication successful!'
-          return
-        end
-
-        raise MysqlReplicator::Error, 'Failed to authenticate caching_sha2_password with RSA encryption'
       end
 
-      def self.perform_auth(connection, user, password, database, handshake_info)
-        auth_payload = build_auth_payload(user, password, database, handshake_info)
+      def self.caching_sha2_password_auth(connection, user, password, database, handshake_info)
+        auth_payload = build_caching_sha2_password_payload(user, password, database, handshake_info)
+        debug_caching_sha2_password_payload(auth_payload, !database.empty?)
         connection.send_packet(auth_payload)
 
         auth_response_packet = connection.read_packet
-        payload = auth_response_packet[:payload]
+        if handle_caching_sha2_password_response(auth_response_packet) == :success
+          return
+        end
+
+        MysqlReplicator::Logger.debug 'Trying RSA encryption authentication...'
+
+        # Request public key for RSA encryption
+        public_key_payload = [0x02].pack('C')
+        connection.send_packet(public_key_payload)
+
+        public_key_response_packet = connection.read_packet
+        if public_key_response_packet[:payload][0].unpack('C')[0] != 0x01
+          raise MysqlReplicator::Error, 'Failed to retrieve public key'
+        end
+
+        # Auth with RSA encryption
+        public_key = public_key_response_packet[:payload][1..]
+        encrypted_password_payload = build_rsa_encrypt_password_payload(password, public_key, handshake_info[:auth_plugin_data])
+        connection.send_packet(encrypted_password_payload)
+
+        final_auth_response_packet = connection.read_packet
+        if final_auth_response_packet[:payload][0].unpack('C')[0] != 0x00
+          raise MysqlReplicator::Error, 'RSA encryption authentication failed'
+        end
+
+        # Read EOF packet（at finish）
+        connection.read_packet
+      end
+
+      def self.handle_caching_sha2_password_response(packet)
+        payload = packet[:payload]
 
         # First byte of the response is result type
         first_byte = payload[0].unpack('C')[0]
@@ -57,43 +82,17 @@ module MysqlReplicator
             raise MysqlReplicator::Error, "Unexpected command: #{format('%02X', command)}"
           end
         else
-          error_code = payload[1..2].unpack('v')[0]
-          sql_state_marker = payload[3].chr
-          sql_state = payload[4..8]
-          error_message = payload[9..]
           raise MysqlReplicator::Error,
             'Authentication Error: ' \
-            "first_byte: #{first_byte} code is #{error_code}, " \
-            "sql_state_marker is #{sql_state_marker}, " \
-            "sql_state is #{sql_state}, " \
-            "message is #{error_message}"
+            "first_byte = #{first_byte}, " \
+            "code = #{payload[1..2].unpack('v')[0]}, " \
+            "sql_state_marker = #{payload[3].chr}, " \
+            "sql_state = #{payload[4..8]}, " \
+            "message = #{payload[9..]}"
         end
       end
 
-      def self.perform_rsa_encryption_auth(connection, password, handshake_info)
-        # Request public key for RSA encryption
-        public_key_payload = [0x02].pack('C')
-        connection.send_packet(public_key_payload)
-
-        public_key_response_packet = connection.read_packet
-        if public_key_response_packet[:payload][0].unpack('C')[0] != 0x01
-          raise MysqlReplicator::Error, 'Failed to retrieve public key'
-        end
-
-        # Auth with RSA encryption
-        public_key = public_key_response_packet[:payload][1..]
-        encrypted_password_payload = build_rsa_encrypt_password_payload(password, public_key, handshake_info[:auth_plugin_data])
-        connection.send_packet(encrypted_password_payload)
-
-        final_auth_response_packet = connection.read_packet
-        if final_auth_response_packet[:payload][0].unpack('C')[0] == 0x00
-          :success
-        else
-          :error
-        end
-      end
-
-      def self.build_auth_payload(user, password, database, handshake_info)
+      def self.build_caching_sha2_password_payload(user, password, database, handshake_info)
         # Client feature flag
         client_flags = CLIENT_PROTOCOL_41 |
                        CLIENT_SECURE_CONNECTION |
@@ -116,7 +115,7 @@ module MysqlReplicator
         username_data = user + "\x00"
 
         # Hash for caching_sha2_password
-        auth_response = build_caching_sha2_password_payload(password, handshake_info[:auth_plugin_data])
+        challenge_hash = build_caching_sha2_password_hash(password, handshake_info[:auth_plugin_data])
 
         # Database (optional)
         database_data = database && !database.empty? ? database + "\x00" : ''
@@ -125,22 +124,19 @@ module MysqlReplicator
         auth_plugin_name_data = handshake_info[:auth_plugin_name] + "\x00"
 
         # Payload of packet
-        payload = [client_flags].pack('V') +
-                  [max_packet_size].pack('V') +
-                  [charset].pack('C') +
-                  reserved_data +
-                  username_data +
-                  [auth_response.length].pack('C') + auth_response +
-                  database_data +
-                  auth_plugin_name_data
-        debug_auth_payload(payload, !database_data.empty?)
-
-        payload
+        [client_flags].pack('V') +
+          [max_packet_size].pack('V') +
+          [charset].pack('C') +
+          reserved_data +
+          username_data +
+          [challenge_hash.length].pack('C') + challenge_hash +
+          database_data +
+          auth_plugin_name_data
       end
 
-      # caching_sha2_password authentication payload
+      # Hash value for caching_sha2_password
       # SHA256(password) XOR SHA256(SHA256(SHA256(password)) + salt)
-      def self.build_caching_sha2_password_payload(password, salt)
+      def self.build_caching_sha2_password_hash(password, salt)
         return '' if password.empty?
 
         # SHA256(password)
@@ -158,83 +154,113 @@ module MysqlReplicator
         payload
       end
 
-      def self.build_rsa_encrypt_password_payload(password, public_key, salt)
+      def self.build_rsa_encrypt_password_payload(password, public_key, scramble)
         rsa_public_key = OpenSSL::PKey::RSA.new(public_key)
 
         # Password is null-terminated string
         password_with_null = password + "\x00"
-        password_bytes = password_with_null.encode('UTF-8').bytes
 
-        scramble = case salt
-                   when String
-                     salt.bytes
-                   when Array
-                     salt
-                   else
-                     raise "Invalid salt type: #{salt.class}"
-                   end
+        password_bytes = password_with_null.encode('UTF-8').bytes
+        scramble_bytes = scramble.bytes
 
         xor_result = []
         password_bytes.each_with_index do |byte, index|
-          scramble_byte = scramble[index % scramble.length]
+          scramble_byte = scramble_bytes[index % scramble_bytes.length]
           xor_result << (byte ^ scramble_byte)
         end
         data_to_encrypt = xor_result.pack('C*')
 
         begin
           # First, try OAEP padding (MySQL 8.0.5+)
-          encrypted_data = rsa_public_key.public_encrypt(data_to_encrypt, OpenSSL::PKey::RSA::PKCS1_OAEP_PADDING)
+          rsa_public_key.public_encrypt(data_to_encrypt, OpenSSL::PKey::RSA::PKCS1_OAEP_PADDING)
         rescue OpenSSL::PKey::RSAError
           # If OAEP fails, use PKCS#1 (MySQL 8.0.4 and earlier)
-          encrypted_data = rsa_public_key.public_encrypt(data_to_encrypt, OpenSSL::PKey::RSA::PKCS1_PADDING)
+          rsa_public_key.public_encrypt(data_to_encrypt, OpenSSL::PKey::RSA::PKCS1_PADDING)
         end
-        encrypted_data
       end
 
-      def self.debug_auth_payload(payload, with_database)
-        MysqlReplicator::Logger.debug '===== Start Auth Payload ====='
-
+      def self.debug_caching_sha2_password_payload(payload, with_database)
         offset = 0
 
-        MysqlReplicator::Logger.debug "Client flags: #{payload[offset..(offset + 3)].unpack('V')[0].to_s(16)}"
+        client_flags = payload[offset..(offset + 3)].unpack('V')[0]
         offset += 4
 
-        MysqlReplicator::Logger.debug "Max packet size: #{payload[offset..(offset + 3)].unpack('V')[0]}"
+        max_packet_size = payload[offset..(offset + 3)].unpack('V')[0]
         offset += 4
 
-        MysqlReplicator::Logger.debug "Character set: #{payload[offset].unpack('C')[0]}"
+        character_set = payload[offset].unpack('C')[0]
         offset += 1
 
-        MysqlReplicator::Logger.debug "Reserved: #{payload[offset..(offset + 22)].unpack('C*').all?(&:zero?) ? 'All zero' : 'None zero'}"
+        reserved = payload[offset..(offset + 22)]
         offset += 23
 
         null_pos = payload.index("\x00", offset)
-        user_in_packet = payload[offset...null_pos]
-        MysqlReplicator::Logger.debug "User: '#{user_in_packet}'"
+        user = payload[offset...null_pos]
         offset = null_pos + 1
 
-        auth_response_length = payload[offset].unpack('C')[0]
-        MysqlReplicator::Logger.debug "Auth reponse length: #{auth_response_length}"
+        challenge_hash_length = payload[offset].unpack('C')[0]
         offset += 1
-
-        if auth_response_length > 0
-          auth_response_data = payload[offset..(offset + auth_response_length - 1)]
-          MysqlReplicator::Logger.debug "Auth response data: #{auth_response_data.unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
-          offset += auth_response_length
+        if challenge_hash_length > 0
+          challenge_hash_data = payload[offset..(offset + challenge_hash_length - 1)]
+          offset += challenge_hash_length
         end
 
         if with_database
           db_null_pos = payload.index("\x00", offset)
-          db_name = payload[offset...db_null_pos]
-          MysqlReplicator::Logger.debug "Database name: '#{db_name}'"
+          database = payload[offset...db_null_pos]
           offset = db_null_pos + 1
         end
 
         plugin_null_pos = payload.index("\x00", offset)
         plugin_name = payload[offset...plugin_null_pos] if plugin_null_pos
-        MysqlReplicator::Logger.debug "Auth plugin name: '#{plugin_name}'"
 
-        MysqlReplicator::Logger.debug '===== End Auth Payload ====='
+        MysqlReplicator::Logger.debug \
+          "===== Start Auth Payload =====\n" \
+          "Client flags: #{client_flags.to_s(16)}\n" \
+          "Max packet size: #{max_packet_size}\n" \
+          "Character set: #{character_set}\n" \
+          "Reserved: #{reserved.unpack('C*').all?(&:zero?) ? 'All zero' : 'None zero'}\n" \
+          "User: #{user}\n" \
+          "Challenge hash length: #{challenge_hash_length}\n" \
+          "Challenge hash data: #{challenge_hash_data.unpack('C*').map { |b| format('%02X', b) }.join(' ')}\n" \
+          "Database name: #{database}\n" \
+          "Auth plugin name: #{plugin_name}\n" \
+          '===== End Auth Payload ====='
+      end
+
+      def self.mysql_native_password_auth(connection, password, handshake_info)
+        auth_payload = build_mysql_native_password_payload(password, handshake_info[:auth_plugin_data])
+        connection.send_packet(auth_payload)
+
+        auth_response_packet = connection.read_packet
+
+        if auth_response_packet[:payload][0].unpack('C')[0] != 0x00
+          raise MysqlReplicator::Error,
+            'mysql_native_password authentication failed: ' \
+            "Payload = #{auth_response_packet[:payload].unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
+        end
+
+        # Read EOF packet（at finish）
+        connection.read_packet
+      end
+
+      def build_mysql_native_password_payload(password, salt)
+        return '' if password.empty?
+
+        # SHA1(password)
+        hash1 = Digest::SHA1.digest(password.encode('utf-8'))
+        # SHA1(SHA1(password))
+        hash2 = Digest::SHA1.digest(hash1)
+        # SHA1(salt + SHA1(SHA1(password)))
+        hash3 = Digest::SHA1.digest(salt + hash2)
+
+        # XOR hash1 and hash3
+        payload = ''
+        hash1.each_byte.with_index do |byte, i|
+          payload += (byte ^ hash3[i].ord).chr
+        end
+
+        payload
       end
     end
   end
