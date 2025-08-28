@@ -1,12 +1,11 @@
 # frozen_string_literal: true
 
 require 'socket'
-require_relative 'connections/auth'
-require_relative 'connections/handshake'
-require_relative 'connections/query'
 
 module MysqlReplicator
   class Connection
+    attr_reader :host, :port, :user, :password, :database
+
     def initialize(host: 'localhost', port: 3306, user: 'root', password: '', database: '')
       @host = host
       @port = port
@@ -17,6 +16,15 @@ module MysqlReplicator
       @socket = nil
       @sequence_id = 0
       @connected = false
+      @handshake_info = nil
+    end
+
+    def reset_sequence_id
+      @sequence_id = 0
+    end
+
+    def connected?
+      @connected
     end
 
     def connect
@@ -28,8 +36,8 @@ module MysqlReplicator
       @socket = TCPSocket.new(@host, @port)
       @socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
 
-      handshake_info = MysqlReplicator::Connections::Handshake.perform(self)
-      MysqlReplicator::Connections::Auth.perform(self, @user, @password, @database, handshake_info)
+      @handshake_info = MysqlReplicator::Connections::Handshake.execute(self)
+      MysqlReplicator::Connections::Auth.execute(self, @user, @password, @database, @handshake_info)
 
       @connected = true
       MysqlReplicator::Logger.info "Connected to MySQL server at #{@host}:#{@port}"
@@ -47,7 +55,7 @@ module MysqlReplicator
       reset_sequence_id
       flush_socket_buffer
 
-      MysqlReplicator::Connections::Query.perform(self, sql)
+      MysqlReplicator::Connections::Query.execute(self, sql)
     end
 
     def ping
@@ -124,12 +132,6 @@ module MysqlReplicator
       MysqlReplicator::Logger.debug "Sent packet: #{packet.inspect}"
     end
 
-    private
-
-    def reset_sequence_id
-      @sequence_id = 0
-    end
-
     def flush_socket_buffer
       flushed_data = ''
 
@@ -149,7 +151,23 @@ module MysqlReplicator
 
       return if flushed_data.empty?
 
-      MysqlReplicator::Logger.warn "#{flushed_data.length} bytes of unread data cleared"
+      MysqlReplicator::Logger.debug "#{flushed_data.length} bytes of unread data cleared"
+    end
+
+    def connection_id
+      @handshake_info[:connection_id]
+    end
+
+    def dup
+      new_connection = self.class.new(
+        host: @host,
+        port: @port,
+        user: @user,
+        password: @password,
+        database: @database
+      )
+      new_connection.connect
+      new_connection
     end
   end
 end

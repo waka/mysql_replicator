@@ -13,8 +13,9 @@ module MysqlReplicator
       CLIENT_MULTI_STATEMENTS = 0x00010000
       CLIENT_MULTI_RESULTS = 0x00020000
 
-      def self.perform(connection, user, password, database, handshake_info)
+      def self.execute(connection, user, password, database, handshake_info)
         auth_plugin_name = handshake_info[:auth_plugin_name]
+
         case auth_plugin_name
         when 'caching_sha2_password'
           caching_sha2_password_auth(connection, user, password, database, handshake_info)
@@ -23,8 +24,11 @@ module MysqlReplicator
           mysql_native_password_auth(connection, password, handshake_info)
           MysqlReplicator::Logger.debug 'Authentication by mysql_native_password is successful!'
         else
-          raise MysqlReplicator::Error, "Unsupported authentication plugin: #{auth_plugin_name}"
+          raise MysqlReplicator::Error, "Unsupported auth plugin name: #{auth_plugin_name}"
         end
+
+        # Clear EOF packet (at finish)
+        connection.flush_socket_buffer
       end
 
       def self.caching_sha2_password_auth(connection, user, password, database, handshake_info)
@@ -54,12 +58,9 @@ module MysqlReplicator
         connection.send_packet(encrypted_password_payload)
 
         final_auth_response_packet = connection.read_packet
-        if final_auth_response_packet[:payload][0].unpack('C')[0] != 0x00
-          raise MysqlReplicator::Error, 'RSA encryption authentication failed'
-        end
+        return unless final_auth_response_packet[:payload][0].unpack('C')[0] != 0x00
 
-        # Read EOF packet（at finish）
-        connection.read_packet
+        raise MysqlReplicator::Error, 'RSA encryption authentication failed'
       end
 
       def self.handle_caching_sha2_password_response(packet)
@@ -234,14 +235,11 @@ module MysqlReplicator
 
         auth_response_packet = connection.read_packet
 
-        if auth_response_packet[:payload][0].unpack('C')[0] != 0x00
-          raise MysqlReplicator::Error,
-            'mysql_native_password authentication failed: ' \
-            "Payload = #{auth_response_packet[:payload].unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
-        end
+        return unless auth_response_packet[:payload][0].unpack('C')[0] != 0x00
 
-        # Read EOF packet（at finish）
-        connection.read_packet
+        raise MysqlReplicator::Error,
+          'mysql_native_password authentication failed: ' \
+          "Payload = #{auth_response_packet[:payload].unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
       end
 
       def build_mysql_native_password_payload(password, salt)

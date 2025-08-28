@@ -3,7 +3,7 @@
 module MysqlReplicator
   module Connections
     class Handshake
-      def self.perform(connection)
+      def self.execute(connection)
         handshake_response_packet = connection.read_packet
         handshake_info = parse_handshake_response_packet(handshake_response_packet)
 

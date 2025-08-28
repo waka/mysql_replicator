@@ -3,7 +3,7 @@
 module MysqlReplicator
   module Connections
     class Query
-      def self.perform(connection, sql)
+      def self.execute(connection, sql)
         query_payload = [0x03].pack('C') + sql.encode('utf-8')
         connection.send_packet(query_payload)
 
@@ -161,19 +161,21 @@ module MysqlReplicator
         offset = 0
 
         columns.each do |column|
+          column_name_key = column[:name].downcase.to_sym
+
           if offset >= payload.length
-            row[column[:name]] = nil
+            row[column_name_key] = nil
             next
           end
 
           if first_byte == 0xFB
             # NULL value
-            row[column[:name]] = nil
+            row[column_name_key] = nil
             offset += 1
           else
             # row data (length-encoded string)
             value = length_encoded_string(payload, offset)
-            row[column[:name]] = value[:value]
+            row[column_name_key] = value[:value]
             offset += value[:bytes_read]
           end
         end

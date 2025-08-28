@@ -12,6 +12,9 @@ Layout/LineLength:
 Metrics/AbcSize:
   Enabled: false
 
+Metrics/BlockLength:
+  Enabled: false
+
 Metrics/BlockNesting:
   Enabled: false
 
@@ -43,6 +46,9 @@ Style/IfUnlessModifier:
   Enabled: false
 
 Style/NumericPredicate:
+  Enabled: false
+
+Style/OptionalBooleanParameter:
   Enabled: false
 
 Style/RescueStandardError:
