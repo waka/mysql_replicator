@@ -158,9 +158,7 @@ module MysqlReplicator
           when :QUERY, :WRITE_ROWS, :UPDATE_ROWS, :DELETE_ROWS
             @event_listener&.call(binlog_event)
           when :ROTATE
-            binlog_file = binlog_event[:execution][:filename]
-            binlog_position = binlog_event[:execution][:position]
-            restart_replication(binlog_file, binlog_position)
+            MysqlReplicator::Logger.warn "Rotate binlog event: #{binlog_event}"
           when :UNKNOWN
             MysqlReplicator::Logger.warn "Unknown binlog event: #{binlog_event}"
           end

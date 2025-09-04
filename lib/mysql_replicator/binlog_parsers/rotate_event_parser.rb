@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module MysqlReplicator
-  module Binlog
+  module BinlogParsers
     class RotateEventParser
       def self.parse(payload, checksum_enabled = false)
         # Position (8 bytes, where the next binlog starts, Little Endian 64-bit)

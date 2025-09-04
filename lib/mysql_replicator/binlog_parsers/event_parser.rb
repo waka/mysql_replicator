@@ -21,7 +21,7 @@ module MysqlReplicator
 
         execution = parse_execution_data(
           event_type,
-          payload[19, event_length - 19],
+          payload[19, -1],
           connection,
           checksum_enabled
         )
@@ -62,11 +62,11 @@ module MysqlReplicator
       def parse_execution_data(event_type, payload, connection, checksum_enabled)
         case event_type
         when :QUERY
-          MysqlReplicator::Binlog::QueryEventParser.parse(payload)
+          MysqlReplicator::BinlogParsers::QueryEventParser.parse(payload)
         when :ROTATE
-          MysqlReplicator::Binlog::RotateEventParser.parse(payload, checksum_enabled)
+          MysqlReplicator::BinlogParsers::RotateEventParser.parse(payload, checksum_enabled)
         when :FORMAT_DESCRIPTION
-          MysqlReplicator::Binlog::FormatDescriptionEventParser.parse(payload)
+          MysqlReplicator::BinlogParsers::FormatDescriptionEventParser.parse(payload)
         when :TABLE_MAP
           result = MysqlReplicator::BinlogParsers::TableMapEventParser.parse(payload, connection)
           # Store in table map for future row events
@@ -79,9 +79,9 @@ module MysqlReplicator
             @stored_table_map
           )
         when :UPDATE_ROWS
-          parse_update_rows_event(payload)
+          # a
         when :DELETE_ROWS
-          parse_delete_rows_event(payload)
+          # a
         else
           {}
         end

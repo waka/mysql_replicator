@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module MysqlReplicator
-  module Binlog
+  module BinlogParsers
     class ColumnParser
       def self.parse_value(data, column_type)
         return ['[insufficient data]', 0] if data.empty?

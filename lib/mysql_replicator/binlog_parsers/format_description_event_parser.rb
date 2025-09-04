@@ -2,7 +2,7 @@
 
 module MysqlReplicator
   module BinlogParsers
-    class FormatDescriptionEvent
+    class FormatDescriptionEventParser
       def self.parse(payload)
         binlog_version = payload[0, 2].unpack('v')[0]
         server_version = payload[2, 50].strip.gsub("\x00", '') if payload.length >= 52
