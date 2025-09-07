@@ -1,27 +1,42 @@
 # frozen_string_literal: true
 
 module MysqlReplicator
-  module BinlogParsers
+  module Binlogs
     class EventParser
       def initialize
         @stored_table_map = {}
       end
 
       def execute(payload, connection, checksum_enabled)
-        timestamp = Time.at(payload[0, 4].unpack('V')[0])
-        event_type = readable_event_type(payload[4].unpack('C')[0])
-        server_id = payload[5, 4].unpack('V')[0]
-        event_length = payload[9, 4].unpack('V')[0]
-        next_position = payload[13, 4].unpack('V')[0]
-        flags = payload[17, 2].unpack('v')[0]
+        offset = 0
+
+        # Skip MySQL packet header (First byte is OK status)
+        if payload[0].unpack('C')[0] == 0x00
+          offset += 1
+        end
+
+        timestamp = Time.at(payload[offset, 4].unpack('V')[0])
+        offset += 4
+        event_type = readable_event_type(payload[offset].unpack('C')[0])
+        offset += 1
+        server_id = payload[offset, 4].unpack('V')[0]
+        offset += 4
+        event_length = payload[offset, 4].unpack('V')[0]
+        offset += 4
+        next_position = payload[offset, 4].unpack('V')[0]
+        offset += 4
+        flags = payload[offset, 2].unpack('v')[0]
+        offset += 2
 
         MysqlReplicator::Logger.debug \
           "Parsed binlog event: #{event_type}, timestamp: #{timestamp}, server_id: #{server_id}, " \
           "length: #{event_length}, next_position: #{next_position}, flags: #{flags}"
 
+        payload_length = event_length - 19
+
         execution = parse_execution_data(
           event_type,
-          payload[19, -1],
+          payload[offset, payload_length],
           connection,
           checksum_enabled
         )
@@ -62,22 +77,18 @@ module MysqlReplicator
       def parse_execution_data(event_type, payload, connection, checksum_enabled)
         case event_type
         when :QUERY
-          MysqlReplicator::BinlogParsers::QueryEventParser.parse(payload)
+          MysqlReplicator::Binlogs::QueryEventParser.parse(payload, checksum_enabled)
         when :ROTATE
-          MysqlReplicator::BinlogParsers::RotateEventParser.parse(payload, checksum_enabled)
+          MysqlReplicator::Binlogs::RotateEventParser.parse(payload, checksum_enabled)
         when :FORMAT_DESCRIPTION
-          MysqlReplicator::BinlogParsers::FormatDescriptionEventParser.parse(payload)
+          MysqlReplicator::Binlogs::FormatDescriptionEventParser.parse(payload)
         when :TABLE_MAP
-          result = MysqlReplicator::BinlogParsers::TableMapEventParser.parse(payload, connection)
+          result = MysqlReplicator::Binlogs::TableMapEventParser.parse(payload, connection)
           # Store in table map for future row events
           @stored_table_map[result[:table_id]] = result
+          result
         when :WRITE_ROWS
-          MysqlReplicator::BinlogParsers::RowsEventParser.parse(
-            payload,
-            connection,
-            checksum_enabled,
-            @stored_table_map
-          )
+          MysqlReplicator::Binlogs::RowsEventParser.parse(event_type, payload, checksum_enabled, @stored_table_map)
         when :UPDATE_ROWS
           # a
         when :DELETE_ROWS

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module MysqlReplicator
-  module BinlogParsers
+  module Binlogs
     class FormatDescriptionEventParser
       def self.parse(payload)
         binlog_version = payload[0, 2].unpack('v')[0]

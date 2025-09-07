@@ -139,7 +139,7 @@ module MysqlReplicator
     end
 
     def handle_binlog_events
-      event_parser = MysqlReplicator::BinlogParsers::EventParser.new
+      event_parser = MysqlReplicator::Binlogs::EventParser.new
 
       loop do
         break unless @replicationing

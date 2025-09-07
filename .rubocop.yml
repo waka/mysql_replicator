@@ -42,6 +42,9 @@ Style/BitwisePredicate:
 Style/Documentation:
   Enabled: false
 
+Style/FormatStringToken:
+  Enabled: false
+
 Style/IfUnlessModifier:
   Enabled: false
 

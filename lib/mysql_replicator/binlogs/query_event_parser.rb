@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module MysqlReplicator
-  module BinlogParsers
+  module Binlogs
     class QueryEventParser
-      def self.parse(payload)
+      def self.parse(payload, checksum_enabled)
         offset = 0
 
         thread_id = payload[offset, 4].unpack('V')[0]
@@ -39,7 +39,7 @@ module MysqlReplicator
         # The rest is the SQL query
         if offset < payload.length
           # Remove checksum if present (last 4 bytes)
-          sql_end = @checksum_enabled ? -5 : -1
+          sql_end = checksum_enabled ? -5 : -1
           sql = payload[offset..sql_end]
         end
 
