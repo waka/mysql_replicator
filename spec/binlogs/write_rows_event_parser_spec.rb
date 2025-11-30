@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-RSpec.describe MysqlReplicator::Binlogs::WriteRowsEventParser do
+RSpec.describe MysqlReplicator::Binlogs::RowsEventParser do
   describe '#parse WRITE_ROWS event payload' do
     let(:checksum_enabled) { true }
     let(:table_map) do
@@ -44,7 +44,8 @@ RSpec.describe MysqlReplicator::Binlogs::WriteRowsEventParser do
     end
 
     subject do
-      MysqlReplicator::Binlogs::WriteRowsEventParser.parse(
+      MysqlReplicator::Binlogs::RowsEventParser.parse(
+        :WRITE_ROWS,
         PayloadExample::WRITE_ROWS_EVENT_PAYLOAD[19..],
         checksum_enabled,
         table_map
@@ -72,12 +73,6 @@ RSpec.describe MysqlReplicator::Binlogs::WriteRowsEventParser do
     context 'column_count' do
       it do
         expect(subject[:column_count]).to eq(27)
-      end
-    end
-
-    context 'columns_present_bitmap' do
-      it do
-        expect(subject[:columns_present_bitmap]).to eq([255, 255, 255, 255])
       end
     end
 

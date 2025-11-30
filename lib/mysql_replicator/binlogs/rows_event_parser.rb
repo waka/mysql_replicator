@@ -1,184 +1,128 @@
 # frozen_string_literal: true
 
+require 'stringio'
+
 module MysqlReplicator
   module Binlogs
     class RowsEventParser
+      # @param event_type [Symbol] the type of the event (:WRITE_ROWS, :UPDATE_ROWS, :DELETE_ROWS)
+      # @param payload [String] the event payload
+      # @param checksum_enabled [Boolean] whether checksum is enabled
+      # @param table_map [Hash] the table map for resolving table definitions
+      # @return [Hash] parsed write rows event data
       def self.parse(event_type, payload, checksum_enabled, table_map)
-        offset = 0
+        io = StringIO.new(payload)
+        io.set_encoding(Encoding::BINARY)
+
+        # 4bytes checksum at the end if CRC32 checksum is enabled
+        payload_size = checksum_enabled ? payload.bytesize - 4 : payload.bytesize
 
         # Table ID (6 bytes)
-        table_id = to_little_endian(payload[0, 6].unpack('C*'))
-        offset += 6
-
+        table_id = StringIOUtil.read_uint48(io)
         # Flags (2 bytes)
-        _flags = payload[offset, 2].unpack('v')[0]
-        offset += 2
-
-        # Extra data length (2 bytes) and extra data
-        extra_data_length = payload[offset, 2].unpack('v')[0]
-        offset += 2
-        _extra_data = nil
-        if extra_data_length > 2
-          _extra_data = payload[offset, extra_data_length - 2]
-          offset += extra_data_length - 2
-        end
-
-        # Variable part starts here
-        table_def = table_map[table_id]
+        flags = StringIOUtil.read_uint16(io)
+        # Extra data length (2 bytes)
+        extra_data_length = StringIOUtil.read_uint16(io)
+        # Skip extra data if present
+        io.read(extra_data_length - 2) if extra_data_length > 2
 
         # Column count (variable length encoded)
-        column_count, bytes_read = read_variable_length_integer(payload, offset)
-        offset += bytes_read
+        column_count = read_packed_integer(io)
 
-        rows = parse_rows(
-          event_type,
-          payload[offset..],
-          table_def,
-          column_count,
-          checksum_enabled
-        )
+        # Columns present bitmap
+        bitmap_size = (column_count + 7) / 8
+        # A bitmap indicating which columns are present in the row data
+        columns_present_bitmap = io.read(bitmap_size).unpack('C*')
+        # if UPDATE_ROWS event, after this bitmap, there is another bitmap for "columns present in the after image"
+        columns_after_bitmap = event_type == :UPDATE_ROWS ? io.read(bitmap_size).unpack('C*') : nil
+
+        # Parse row data
+        table_def = table_map[table_id]
+        rows = []
+        while io.pos < payload_size
+          if event_type == :UPDATE_ROWS
+            before_row = parse_row(io, column_count, columns_present_bitmap, table_def)
+            after_row = parse_row(io, column_count, columns_after_bitmap, table_def)
+            rows << { before: before_row, after: after_row }
+          else
+            row = parse_row(io, column_count, columns_present_bitmap, table_def)
+            rows << row
+          end
+        end
 
         {
           table_id: table_id,
-          database: table_def[:database],
-          table: table_def[:table],
-          columns: table_def[:columns],
+          flags: flags,
+          extra_data_length: extra_data_length,
           column_count: column_count,
           rows: rows
         }
       end
 
-      def self.to_little_endian(bytes)
-        result = 0
-        bytes.each_with_index do |byte, i|
-          result |= (byte << (i * 8))
+      def self.parse_row(io, column_count, columns_present_bitmap, table_def)
+        # Null bitmap
+        # A bitmap indicating which columns are NULL
+        present_count = count_bits(columns_present_bitmap, column_count)
+        null_bitmap_size = (present_count + 7) / 8
+        null_bitmap = io.read(null_bitmap_size).unpack('C*')
+        null_bit_index = 0
+
+        row = []
+        table_def[:columns].each_with_index do |column_def, column_index|
+          unless bit_set?(columns_present_bitmap, column_index)
+            next
+          end
+
+          column_name = column_def[:column_name]
+
+          # Check if the column is NULL
+          value = if bit_set?(null_bitmap, null_bit_index)
+                    nil
+                  else
+                    MysqlReplicator::Binlogs::ColumnParser.parse(io, column_def)
+                  end
+          null_bit_index += 1
+
+          row << {
+            ordinal_position: column_def[:ordinal_position].to_i,
+            data_type: column_def[:data_type],
+            column_name: column_name,
+            value: value,
+            primary_key: column_def[:primary_key]
+          }
         end
-        result
+
+        row
       end
 
-      def self.read_variable_length_integer(payload, offset)
-        first_byte = payload[offset, 1].unpack('C')[0]
-
-        if first_byte < 0xfb
-          [first_byte, 1]
-        elsif first_byte == 0xfc
-          [payload[offset + 1, 2].unpack('v')[0], 3]
-        elsif first_byte == 0xfd
-          [payload[offset + 1, 3].unpack('V')[0] & 0xffffff, 4]
-        elsif first_byte == 0xfe
-          [payload[offset + 1, 8].unpack('Q<')[0], 9]
+      def self.read_packed_integer(io)
+        first = StringIOUtil.read_uint8(io)
+        case first
+        when 0..250
+          first
+        when 252
+          StringIOUtil.read_uint16(io)
+        when 253
+          StringIOUtil.read_uint24(io)
+        when 254
+          StringIOUtil.read_uint64(io)
         else
-          [0, 1]
+          raise "Invalid packed integer: #{first}"
         end
       end
 
-      def self.parse_rows(event_type, payload, table_def, column_count, checksum_enabled)
-        offset = 0
-
-        # Columns present bitmap (before image for UPDATE)
-        # For WRITE_ROWS, this is the columns present bitmap
-        bitmap_bytes = (column_count + 7) / 8
-        columns_present_before = payload[offset, bitmap_bytes]
-        offset += bitmap_bytes
-
-        # For UPDATE events, there's also an "after" bitmap
-        columns_present_after = nil
-        if event_type == :UPDATE_ROWS
-          columns_present_after = payload[offset, bitmap_bytes]
-          offset += bitmap_bytes
-        end
-
-        rows = []
-        while offset < payload.length - (checksum_enabled ? 4 : 0)
-          case event_type
-          when :WRITE_ROWS
-            row_data = parse_single_row(payload, offset, table_def, columns_present_before)
-            break if row_data.nil?
-
-            rows << { type: :insert, after: row_data[:row] }
-            offset = row_data[:next_offset]
-          when :DELETE_ROWS
-            row_data = parse_single_row(payload, offset, table_def, columns_present_before)
-            break if row_data.nil?
-
-            rows << { type: :delete, before: row_data[:row] }
-            offset = row_data[:next_offset]
-          when :UPDATE_ROWS
-            # Before image
-            before_data = parse_single_row(payload, offset, table_def, columns_present_before)
-            break if before_data.nil?
-
-            offset = before_data[:next_offset]
-
-            # After image
-            after_data = parse_single_row(payload, offset, table_def, columns_present_after)
-            break if after_data.nil?
-
-            rows << { type: :update, before: before_data[:row], after: after_data[:row] }
-            offset = after_data[:next_offset]
-          end
-        end
-
-        rows
+      def self.bit_set?(bitmap, index)
+        byte_index = index / 8
+        bit_index = index % 8
+        (bitmap[byte_index] & (1 << bit_index)) != 0
       end
 
-      def self.parse_single_row(payload, offset, table_def, columns_present)
-        # NULL bitmap
-        null_bitmap_bytes = (table_def[:columns].length + 7) / 8
-        return nil if offset + null_bitmap_bytes > payload.length
-
-        null_bitmap = payload[offset, null_bitmap_bytes]
-        offset += null_bitmap_bytes
-
-        row = {}
-
-        table_def[:columns].each_with_index do |column_def, index|
-          if column_present?(columns_present, index) && !column_null?(null_bitmap, index)
-            result = MysqlReplicator::Binlogs::ColumnParser.parse(payload[offset..], column_def)
-            puts result
-            row[column_def[:column_name].to_sym] = {
-              value: result[:value],
-              type: column_def[:data_type],
-              ordinal_position: column_def[:ordinal_position],
-              enum_values: column_def[:enum_values],
-              primary_key: column_def[:primary_key],
-              nullable: column_def[:nullable]
-            }
-            offset += result[:byte_consumed]
-          elsif column_null?(null_bitmap, index)
-            row[column_def[:column_name].to_sym] = {
-              value: nil,
-              type: column_def[:data_type],
-              ordinal_position: column_def[:ordinal_position],
-              enum_values: column_def[:enum_values],
-              primary_key: column_def[:primary_key],
-              nullable: column_def[:nullable]
-            }
-          else
-            MysqlReplicator::Logger.debug \
-              "#{column_def[:column_name]} (#{column_def[:data_type]}) is not present"
-          end
+      def self.count_bits(bitmap, max_bits)
+        count = 0
+        max_bits.times do |i|
+          count += 1 if bit_set?(bitmap, i)
         end
-
-        { row: row, next_offset: offset }
-      end
-
-      def self.column_present?(columns_present, column_index)
-        byte_index = column_index / 8
-        bit_index = column_index % 8
-        return false if byte_index >= columns_present.length
-
-        byte_value = columns_present[byte_index].unpack('C')[0]
-        (byte_value & (1 << bit_index)) != 0
-      end
-
-      def self.column_null?(null_bitmap, column_index)
-        byte_index = column_index / 8
-        bit_index = column_index % 8
-        return false if byte_index >= null_bitmap.length
-
-        byte_value = null_bitmap[byte_index].unpack('C')[0]
-        (byte_value & (1 << bit_index)) != 0
+        count
       end
     end
   end

@@ -81,11 +81,11 @@ module MysqlReplicator
           @stored_table_map[result[:table_id]] = result
           result
         when :WRITE_ROWS
-          MysqlReplicator::Binlogs::WriteRowsEventParser.parse(payload, checksum_enabled, @stored_table_map)
+          MysqlReplicator::Binlogs::RowsEventParser.parse(:WRITE_ROWS, payload, checksum_enabled, @stored_table_map)
         when :UPDATE_ROWS
-          # a
+          MysqlReplicator::Binlogs::RowsEventParser.parse(:UPDATE_ROWS, payload, checksum_enabled, @stored_table_map)
         when :DELETE_ROWS
-          # a
+          MysqlReplicator::Binlogs::RowsEventParser.parse(:DELETE_ROWS, payload, checksum_enabled, @stored_table_map)
         when :XID
           MysqlReplicator::Binlogs::XidEventParser.parse(payload)
         else
