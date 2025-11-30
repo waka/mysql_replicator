@@ -3,6 +3,8 @@
 module MysqlReplicator
   # Binlog handler using MySQL Replication Protocol
   class BinlogClient
+    attr_reader :connection
+
     def initialize(connection, server_id = 1001)
       @connection = connection
       @server_id = server_id
@@ -31,14 +33,15 @@ module MysqlReplicator
 
     def stop_replication
       @replicationing = false
+      @connection.flush_socket_buffer
       unregister_as_slave
       @connection.close
       sleep 0.1
     end
 
-    def restart_replication(binlog_file, binlog_position)
+    def restart_replication(binlog_file = nil, binlog_position = nil, &block)
       stop_replication
-      start_replication(binlog_file, binlog_position)
+      start_replication(binlog_file, binlog_position, block)
     end
 
     def master_status
@@ -152,16 +155,12 @@ module MysqlReplicator
         case first_byte
         when 0x00
           binlog_event = event_parser.execute(payload[1..], @connection, @checksum_type == 'CRC32')
-          MysqlReplicator::Logger.info "Binlog event: #{binlog_event}"
 
           case binlog_event[:event_type]
           when :QUERY, :WRITE_ROWS, :UPDATE_ROWS, :DELETE_ROWS
             @event_listener&.call(binlog_event)
-          when :ROTATE
-            MysqlReplicator::Logger.warn "Rotate binlog event: #{binlog_event}"
-          when :UNKNOWN
-            MysqlReplicator::Logger.warn "Unknown binlog event: #{binlog_event}"
           end
+          MysqlReplicator::Logger.debug "Binlog event: #{binlog_event}"
         when 0xFF
           MysqlReplicator::Logger.error \
             "Binlog event error: #{payload[1, 2].unpack('v')[0]} - #{payload[3..]}"
@@ -175,7 +174,7 @@ module MysqlReplicator
         end
       rescue => e
         MysqlReplicator::Logger.error \
-          "Error reading binlog events: #{e.message},\n" \
+          "Unexpected error: #{e.message},\n" \
           "Backtrace: #{e.backtrace.first(5).join("\n")}"
         break
       end

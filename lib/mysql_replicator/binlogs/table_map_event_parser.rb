@@ -50,6 +50,7 @@ module MysqlReplicator
         query_connection = connection.dup
 
         # Query table structure
+        # IMPORTANT: Column data is stored in ascending order of ORDINAL_POSITION
         query = <<~SQL
           SELECT
             ORDINAL_POSITION,

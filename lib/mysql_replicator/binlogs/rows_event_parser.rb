@@ -10,9 +10,11 @@ module MysqlReplicator
         table_id = to_little_endian(payload[0, 6].unpack('C*'))
         offset += 6
 
+        # Flags (2 bytes)
         _flags = payload[offset, 2].unpack('v')[0]
         offset += 2
 
+        # Extra data length (2 bytes) and extra data
         extra_data_length = payload[offset, 2].unpack('v')[0]
         offset += 2
         _extra_data = nil
@@ -27,6 +29,51 @@ module MysqlReplicator
         # Column count (variable length encoded)
         column_count, bytes_read = read_variable_length_integer(payload, offset)
         offset += bytes_read
+
+        rows = parse_rows(
+          event_type,
+          payload[offset..],
+          table_def,
+          column_count,
+          checksum_enabled
+        )
+
+        {
+          table_id: table_id,
+          database: table_def[:database],
+          table: table_def[:table],
+          columns: table_def[:columns],
+          column_count: column_count,
+          rows: rows
+        }
+      end
+
+      def self.to_little_endian(bytes)
+        result = 0
+        bytes.each_with_index do |byte, i|
+          result |= (byte << (i * 8))
+        end
+        result
+      end
+
+      def self.read_variable_length_integer(payload, offset)
+        first_byte = payload[offset, 1].unpack('C')[0]
+
+        if first_byte < 0xfb
+          [first_byte, 1]
+        elsif first_byte == 0xfc
+          [payload[offset + 1, 2].unpack('v')[0], 3]
+        elsif first_byte == 0xfd
+          [payload[offset + 1, 3].unpack('V')[0] & 0xffffff, 4]
+        elsif first_byte == 0xfe
+          [payload[offset + 1, 8].unpack('Q<')[0], 9]
+        else
+          [0, 1]
+        end
+      end
+
+      def self.parse_rows(event_type, payload, table_def, column_count, checksum_enabled)
+        offset = 0
 
         # Columns present bitmap (before image for UPDATE)
         # For WRITE_ROWS, this is the columns present bitmap
@@ -72,38 +119,7 @@ module MysqlReplicator
           end
         end
 
-        {
-          table_id: table_id,
-          database: table_def[:database],
-          table: table_def[:table],
-          columns: table_def[:columns],
-          column_count: column_count,
-          rows: rows
-        }
-      end
-
-      def self.to_little_endian(bytes)
-        result = 0
-        bytes.each_with_index do |byte, i|
-          result |= (byte << (i * 8))
-        end
-        result
-      end
-
-      def self.read_variable_length_integer(payload, offset)
-        first_byte = payload[offset, 1].unpack('C')[0]
-
-        if first_byte < 0xfb
-          [first_byte, 1]
-        elsif first_byte == 0xfc
-          [payload[offset + 1, 2].unpack('v')[0], 3]
-        elsif first_byte == 0xfd
-          [payload[offset + 1, 3].unpack('V')[0] & 0xffffff, 4]
-        elsif first_byte == 0xfe
-          [payload[offset + 1, 8].unpack('Q<')[0], 9]
-        else
-          [0, 1]
-        end
+        rows
       end
 
       def self.parse_single_row(payload, offset, table_def, columns_present)
@@ -119,6 +135,7 @@ module MysqlReplicator
         table_def[:columns].each_with_index do |column_def, index|
           if column_present?(columns_present, index) && !column_null?(null_bitmap, index)
             result = MysqlReplicator::Binlogs::ColumnParser.parse(payload[offset..], column_def)
+            puts result
             row[column_def[:column_name].to_sym] = {
               value: result[:value],
               type: column_def[:data_type],

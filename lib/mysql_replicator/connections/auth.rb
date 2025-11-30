@@ -161,7 +161,7 @@ module MysqlReplicator
         # Password is null-terminated string
         password_with_null = password + "\x00"
 
-        password_bytes = password_with_null.encode('UTF-8').bytes
+        password_bytes = password_with_null.encode(Encoding::UTF_8).bytes
         scramble_bytes = scramble.bytes
 
         xor_result = []

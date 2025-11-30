@@ -10,11 +10,6 @@ module MysqlReplicator
       def execute(payload, connection, checksum_enabled)
         offset = 0
 
-        # Skip MySQL packet header (First byte is OK status)
-        if payload[0].unpack('C')[0] == 0x00
-          offset += 1
-        end
-
         timestamp = Time.at(payload[offset, 4].unpack('V')[0])
         offset += 4
         event_type = readable_event_type(payload[offset].unpack('C')[0])
@@ -28,11 +23,7 @@ module MysqlReplicator
         flags = payload[offset, 2].unpack('v')[0]
         offset += 2
 
-        MysqlReplicator::Logger.debug \
-          "Parsed binlog event: #{event_type}, timestamp: #{timestamp}, server_id: #{server_id}, " \
-          "length: #{event_length}, next_position: #{next_position}, flags: #{flags}"
-
-        payload_length = event_length - 19
+        payload_length = event_length - offset
 
         execution = parse_execution_data(
           event_type,
@@ -61,6 +52,8 @@ module MysqlReplicator
           :ROTATE
         when 15
           :FORMAT_DESCRIPTION
+        when 16
+          :XID
         when 19
           :TABLE_MAP
         when 30
@@ -88,11 +81,13 @@ module MysqlReplicator
           @stored_table_map[result[:table_id]] = result
           result
         when :WRITE_ROWS
-          MysqlReplicator::Binlogs::RowsEventParser.parse(event_type, payload, checksum_enabled, @stored_table_map)
+          MysqlReplicator::Binlogs::WriteRowsEventParser.parse(payload, checksum_enabled, @stored_table_map)
         when :UPDATE_ROWS
           # a
         when :DELETE_ROWS
           # a
+        when :XID
+          MysqlReplicator::Binlogs::XidEventParser.parse(payload)
         else
           {}
         end

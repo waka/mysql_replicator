@@ -1,7 +1,8 @@
 # frozen_string_literal: true
 
-require 'pry'
+require 'irb'
 require 'mysql_replicator'
+require 'supports/payload_example'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure

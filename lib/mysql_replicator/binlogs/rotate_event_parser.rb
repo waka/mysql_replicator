@@ -18,7 +18,7 @@ module MysqlReplicator
         null_pos = filename.index("\x00")
         filename = filename[0...null_pos] if null_pos
         # Clean up any non-printable characters
-        filename = filename.force_encoding('UTF-8').scrub
+        filename = filename.force_encoding(Encoding::UTF_8).scrub
 
         { position: position, filename: filename }
       end
