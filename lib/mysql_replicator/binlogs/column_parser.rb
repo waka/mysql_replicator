@@ -11,29 +11,29 @@ module MysqlReplicator
 
         case type_code
         when MysqlReplicator::Binlogs::FieldTypes::TINY_INT
-          parse_tinyint(io, column_def)
+          parse_tinyint(io)
         when MysqlReplicator::Binlogs::FieldTypes::SMALL_INT
-          parse_smallint(io, column_def)
+          parse_smallint(io)
         when MysqlReplicator::Binlogs::FieldTypes::MEDIUM_INT
-          parse_mediumint(io, column_def)
+          parse_mediumint(io)
         when MysqlReplicator::Binlogs::FieldTypes::INT
-          parse_int(io, column_def)
+          parse_int(io)
         when MysqlReplicator::Binlogs::FieldTypes::BIG_INT
-          parse_bigint(io, column_def)
+          parse_bigint(io)
         when MysqlReplicator::Binlogs::FieldTypes::FLOAT
-          parse_float(io, column_def)
+          parse_float(io)
         when MysqlReplicator::Binlogs::FieldTypes::DOUBLE
-          parse_double(io, column_def)
+          parse_double(io)
         when MysqlReplicator::Binlogs::FieldTypes::DECIMAL
           parse_decimal(io, column_def)
         when MysqlReplicator::Binlogs::FieldTypes::DATETIME
-          parse_datetime(io, column_def)
+          parse_datetime(io)
         when MysqlReplicator::Binlogs::FieldTypes::DATE
-          parse_date(io, column_def)
+          parse_date(io)
         when MysqlReplicator::Binlogs::FieldTypes::TIME
-          parse_time(io, column_def)
+          parse_time(io)
         when MysqlReplicator::Binlogs::FieldTypes::TIMESTAMP
-          parse_timestamp(io, column_def)
+          parse_timestamp(io)
         when MysqlReplicator::Binlogs::FieldTypes::CHAR
           parse_char(io, column_def)
         when MysqlReplicator::Binlogs::FieldTypes::VARCHAR
@@ -47,19 +47,19 @@ module MysqlReplicator
         when MysqlReplicator::Binlogs::FieldTypes::LONG_TEXT
           parse_longtext(io, column_def)
         when MysqlReplicator::Binlogs::FieldTypes::TINY_BLOB
-          parse_tinyblob(io, column_def)
+          parse_tinyblob(io)
         when MysqlReplicator::Binlogs::FieldTypes::BLOB
-          parse_blob(io, column_def)
+          parse_blob(io)
         when MysqlReplicator::Binlogs::FieldTypes::MEDIUM_BLOB
-          parse_mediumblob(io, column_def)
+          parse_mediumblob(io)
         when MysqlReplicator::Binlogs::FieldTypes::LONG_BLOB
-          parse_longblob(io, column_def)
+          parse_longblob(io)
         when MysqlReplicator::Binlogs::FieldTypes::BINARY
           parse_binary(io, column_def)
         when MysqlReplicator::Binlogs::FieldTypes::VAR_BINARY
           parse_varbinary(io, column_def)
         when MysqlReplicator::Binlogs::FieldTypes::JSON
-          parse_json(io, column_def)
+          parse_json(io)
         when MysqlReplicator::Binlogs::FieldTypes::ENUM
           parse_enum(io, column_def)
         else
@@ -67,31 +67,31 @@ module MysqlReplicator
         end
       end
 
-      def self.parse_tinyint(io, _column_def)
+      def self.parse_tinyint(io)
         MysqlReplicator::StringIOUtil.read_int8(io)
       end
 
-      def self.parse_smallint(io, _column_def)
+      def self.parse_smallint(io)
         MysqlReplicator::StringIOUtil.read_int16(io)
       end
 
-      def self.parse_mediumint(io, _column_def)
+      def self.parse_mediumint(io)
         MysqlReplicator::StringIOUtil.read_int24(io)
       end
 
-      def self.parse_int(io, _column_def)
+      def self.parse_int(io)
         MysqlReplicator::StringIOUtil.read_int32(io)
       end
 
-      def self.parse_bigint(io, _column_def)
+      def self.parse_bigint(io)
         MysqlReplicator::StringIOUtil.read_int64(io)
       end
 
-      def self.parse_float(io, _column_def)
+      def self.parse_float(io)
         io.read(4).unpack('e')[0]
       end
 
-      def self.parse_double(io, _column_def)
+      def self.parse_double(io)
         io.read(8).unpack('E')[0]
       end
 
@@ -125,7 +125,7 @@ module MysqlReplicator
         BigDecimal(result)
       end
 
-      def self.parse_datetime(io, _column_def)
+      def self.parse_datetime(io)
         # 5bytes if fractional seconds precision is 0
         # format: 1bit sign + 17bits year*13month+month + 5bits day + 5bits hour + 6bits minute + 6bits second
         data = io.read(5).unpack('C5')
@@ -146,10 +146,11 @@ module MysqlReplicator
         year = year_month / 13
         month = year_month % 13
 
-        "#{year}-#{month}-#{day} #{hour}:#{minute}:#{second}"
+        "#{year}-#{format('%02d', month)}-#{format('%02d', day)} " \
+          "#{format('%02d', hour)}:#{format('%02d', minute)}:#{format('%02d', second)}"
       end
 
-      def self.parse_date(io, _column_def)
+      def self.parse_date(io)
         # 3bytes: YYYY*16*32 + MM*32 + DD
         value = MysqlReplicator::StringIOUtil.read_uint24(io)
 
@@ -157,10 +158,10 @@ module MysqlReplicator
         month = (value >> 5) & 0x0F
         year = value >> 9
 
-        "#{year}-#{month}-#{day}"
+        "#{year}-#{format('%02d', month)}-#{format('%02d', day)}"
       end
 
-      def self.parse_time(io, _column_def)
+      def self.parse_time(io)
         # 3bytes if fractional seconds precision is 0
         # format: 1bit sign + 1bit unused + 10bits hour + 6bits minute + 6bits second
         data = io.read(3).unpack('C3')
@@ -180,7 +181,7 @@ module MysqlReplicator
         end
       end
 
-      def self.parse_timestamp(io, _column_def)
+      def self.parse_timestamp(io)
         # 4bytes if fractional seconds precision is 0
         # Unix Timestamp is Big-Engian
         io.read(4).unpack('N')[0]
@@ -262,22 +263,22 @@ module MysqlReplicator
         charset ? value.force_encoding('utf-8') : value
       end
 
-      def self.parse_tinyblob(io, _column_def)
+      def self.parse_tinyblob(io)
         length = MysqlReplicator::StringIOUtil.read_uint8(io)
         io.read(length)
       end
 
-      def self.parse_blob(io, _column_def)
+      def self.parse_blob(io)
         length = MysqlReplicator::StringIOUtil.read_uint16(io)
         io.read(length)
       end
 
-      def self.parse_mediumblob(io, _column_def)
+      def self.parse_mediumblob(io)
         length = MysqlReplicator::StringIOUtil.read_uint24(io)
         io.read(length)
       end
 
-      def self.parse_longblob(io, _column_def)
+      def self.parse_longblob(io)
         length = MysqlReplicator::StringIOUtil.read_uint32(io)
         io.read(length)
       end
@@ -290,7 +291,7 @@ module MysqlReplicator
         parse_char(io, column_def)
       end
 
-      def self.parse_json(io, _column_def)
+      def self.parse_json(io)
         length = MysqlReplicator::StringIOUtil.read_uint32(io)
         data = io.read(length)
         MysqlReplicator::Binlogs::JsonParser.parse(data)

@@ -1,0 +1,1 @@
+DELETE FROM tests WHERE id = 10;
