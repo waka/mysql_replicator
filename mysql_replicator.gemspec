@@ -35,5 +35,4 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency 'bigdecimal', '~> 3.0'
   spec.add_dependency 'logger', '~> 1.0'
-  spec.add_dependency 'mysql2', '~> 0.5'
 end
