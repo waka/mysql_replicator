@@ -9,39 +9,41 @@ module MysqlReplicator
       @connection = connection
       @server_id = server_id
       @checksum_type = nil
-      @replicationing = false
       @event_listener = nil
     end
 
-    def start_replication(binlog_file = nil, binlog_position = 4, &block)
+    def on(&block)
+      @event_listener = block
+    end
+
+    def start_replication
       @connection.connect unless @connection.connected?
 
-      if binlog_file.nil? || binlog_position.nil?
-        binlog_info = master_status
-        binlog_file = binlog_info[:file]
-        binlog_position = binlog_info[:position]
-      end
+      binlog_info = master_status
+      binlog_file = binlog_info[:file]
+      binlog_position = binlog_info[:position]
 
       configure_binlog_checksum if @checksum_type.nil?
       register_as_slave
       start_binlog_dump(binlog_file, binlog_position)
 
-      @event_listener = block if block_given?
-      @replicationing = true
-      handle_binlog_events
+      begin
+        handle_binlog_events
+      rescue Interrupt
+        stop_replication
+      rescue => e
+        MysqlReplicator::Logger.error \
+          "Unexpected error: #{e.message},\n" \
+          "Backtrace: #{e.backtrace.first(5).join("\n")}"
+
+        stop_replication
+      end
     end
 
     def stop_replication
-      @replicationing = false
       @connection.flush_socket_buffer
       unregister_as_slave
       @connection.close
-      sleep 0.1
-    end
-
-    def restart_replication(binlog_file = nil, binlog_position = nil, &block)
-      stop_replication
-      start_replication(binlog_file, binlog_position, block)
     end
 
     def master_status
@@ -113,6 +115,7 @@ module MysqlReplicator
       case @checksum_type
       when 'NONE'
         # No checksum
+        MysqlReplicator::Logger.debug 'Set binlog checksum to NONE'
       when 'CRC32'
         @connection.query('SET @master_binlog_checksum = "CRC32"')
         MysqlReplicator::Logger.debug 'Set binlog checksum to CRC32'
@@ -145,8 +148,6 @@ module MysqlReplicator
       event_parser = MysqlReplicator::Binlogs::EventParser.new
 
       loop do
-        break unless @replicationing
-
         packet = @connection.read_packet
         payload = packet[:payload]
 
@@ -172,11 +173,6 @@ module MysqlReplicator
           MysqlReplicator::Logger.error "Unexpected packet type: 0x#{first_byte.to_s(16)}"
           break
         end
-      rescue => e
-        MysqlReplicator::Logger.error \
-          "Unexpected error: #{e.message},\n" \
-          "Backtrace: #{e.backtrace.first(5).join("\n")}"
-        break
       end
     end
   end

@@ -21,18 +21,20 @@ require_relative 'mysql_replicator/string_io_util'
 require_relative 'mysql_replicator/version'
 
 module MysqlReplicator
-  def self.logger=(custom_logger)
-    MysqlReplicator::Logger.logger = custom_logger
+  def self.run(host: '127.0.0.1', port: 3306, user: 'root', password: 'root', database: '', &block)
+    conn = MysqlReplicator::Connection.new(
+      host: host,
+      port: port,
+      user: user,
+      password: password,
+      database: database
+    )
+    client = MysqlReplicator::BinlogClient.new(conn)
+    client.on(&block)
+    client.start_replication
   end
 
-  def self.test
-    conn = MysqlReplicator::Connection.new(
-      host: '127.0.0.1',
-      port: 3306,
-      user: 'root',
-      password: 'root',
-      database: 'test'
-    )
-    MysqlReplicator::BinlogClient.new(conn)
+  def self.logger=(custom_logger)
+    MysqlReplicator::Logger.logger = custom_logger
   end
 end

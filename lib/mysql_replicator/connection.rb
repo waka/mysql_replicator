@@ -143,6 +143,8 @@ module MysqlReplicator
           MysqlReplicator::Logger.debug \
             "Found unread data: #{data.unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
         end
+
+        sleep 0.1
       rescue IO::WaitReadable
         # Not at all if no data
       rescue => e
