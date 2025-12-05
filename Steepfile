@@ -17,8 +17,8 @@ target :lib do
   library 'stringio'
 
   # configure_code_diagnostics(D::Ruby.lenient)
-  configure_code_diagnostics(D::Ruby.default)
-  # configure_code_diagnostics(D::Ruby.strict)
+  # configure_code_diagnostics(D::Ruby.default)
+  configure_code_diagnostics(D::Ruby.strict)
   configure_code_diagnostics do |hash|
     hash[D::Ruby::UnannotatedEmptyCollection] = :information
   end

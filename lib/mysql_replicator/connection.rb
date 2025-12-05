@@ -19,8 +19,8 @@ module MysqlReplicator
     # @rbs @database: String
     # @rbs @sequence_id: Integer
     # @rbs @connected: bool
-    # @rbs @socket: TCPSocket
-    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake
+    # @rbs @socket: TCPSocket | nil
+    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake | nil
 
     # @rbs! attr_reader host: String
     # @rbs! attr_reader port: Integer
