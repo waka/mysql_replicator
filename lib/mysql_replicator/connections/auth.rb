@@ -66,7 +66,7 @@ module MysqlReplicator
         end
 
         # Auth with RSA encryption
-        public_key = public_key_response_packet[:payload][1..] || ''
+        public_key = MysqlReplicator::StringUtil.read_str(public_key_response_packet[:payload][1..])
         encrypted_password_payload = build_rsa_encrypt_password_payload(password, public_key, handshake_info[:auth_plugin_data])
         connection.send_packet(encrypted_password_payload)
 

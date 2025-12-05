@@ -141,8 +141,8 @@ module MysqlReplicator
       # Little-endian 24-bit
       packet_length = MysqlReplicator::StringUtil.read_uint8(header[0]) |
                       (MysqlReplicator::StringUtil.read_uint8(header[1]) << 8) |
-                      (MysqlReplicator::StringUtil.read_uint64(header[2]) << 16)
-      sequence_id = MysqlReplicator::StringUtil.read_uint64(header[3])
+                      (MysqlReplicator::StringUtil.read_uint8(header[2]) << 16)
+      sequence_id = MysqlReplicator::StringUtil.read_uint8(header[3])
 
       payload = @socket.read(packet_length)
       if payload.nil? || payload.length != packet_length
