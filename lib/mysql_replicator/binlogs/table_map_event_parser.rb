@@ -1,8 +1,38 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   module Binlogs
     class TableMapEventParser
+      # @rbs!
+      #   type columnData = {
+      #     ordinal_position: Integer,
+      #     data_type: String,
+      #     column_name: String,
+      #     column_type: String,
+      #     enum_values: Array[String | Integer],
+      #     nullable: bool,
+      #     column_default: String | nil,
+      #     numeric_precision: Integer,
+      #     numeric_scale: Integer,
+      #     character_maximum_length: Integer,
+      #     character_set_name: String,
+      #     collation_name: String,
+      #     primary_key: bool
+      #   }
+
+      # @rbs!
+      #   type execution = {
+      #     database: String | nil,
+      #     table: String | nil,
+      #     table_id: Integer,
+      #     columns: Array[columnData],
+      #     flags: Integer
+      #   }
+
+      # @rbs payload: String
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs return: execution
       def self.parse(payload, connection)
         offset = 0
 
@@ -37,6 +67,8 @@ module MysqlReplicator
         }
       end
 
+      # @rbs bytes: Array[Integer]
+      # @rbs return: Integer
       def self.to_little_endian(bytes)
         result = 0
         bytes.each_with_index do |byte, i|
@@ -45,6 +77,10 @@ module MysqlReplicator
         result
       end
 
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs database: String
+      # @rbs table: String
+      # @rbs return: Array[columnData]
       def self.get_table_columns(connection, database, table)
         # Create a separate connection to query table structure
         query_connection = connection.dup
@@ -94,6 +130,9 @@ module MysqlReplicator
         end
       end
 
+      # @rbs data_type: String
+      # @rbs column_type: String
+      # @rbs return: Array[String] | nil
       def self.extract_enum_from_column_type(data_type, column_type)
         return nil unless data_type.downcase == 'enum'
 

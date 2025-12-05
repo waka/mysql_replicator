@@ -1,0 +1,13 @@
+# Generated from lib/mysql_replicator/binlogs/xid_event_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class XidEventParser
+      type execution = { xid: Integer }
+
+      # @rbs payload: String
+      # @rbs return: execution
+      def self.parse: (String payload) -> execution
+    end
+  end
+end

@@ -1,0 +1,21 @@
+# Generated from lib/mysql_replicator/connections/handshake.rb with RBS::Inline
+
+module MysqlReplicator
+  module Connections
+    class Handshake
+      type handshake = { protocol_version: String, server_version: String | nil, connection_id: Integer, capability_flags: Integer, charset: String, status_flags: Integer, auth_plugin_name: String | nil, auth_plugin_data: String }
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs return: handshake
+      def self.execute: (MysqlReplicator::Connection connection) -> handshake
+
+      # @rbs packet: MysqlReplicator::Types::packet
+      # @rbs return: handshake
+      def self.parse_handshake_response_packet: (MysqlReplicator::Types::packet packet) -> handshake
+
+      # @rbs handshake_info: handshake
+      # @rbs return: void
+      def self.debug_handshake_info: (handshake handshake_info) -> void
+    end
+  end
+end

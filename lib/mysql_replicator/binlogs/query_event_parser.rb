@@ -1,8 +1,21 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   module Binlogs
     class QueryEventParser
+      # @rbs!
+      #   type execution = {
+      #     thread_id: Integer,
+      #     exec_time: Integer,
+      #     error_code: Integer,
+      #     database: String | nil,
+      #     sql: String | nil
+      #   }
+
+      # @rbs payload: String
+      # @rbs checksum_enabled: bool
+      # @rbs return: execution
       def self.parse(payload, checksum_enabled)
         offset = 0
 

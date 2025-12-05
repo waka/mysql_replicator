@@ -1,8 +1,48 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   module Connections
     class Query
+      # @rbs!
+      #   type queryResultOk = {
+      #     affected_rows: Integer | nil,
+      #     insert_id: Integer | nil,
+      #     status_flags: Integer | nil,
+      #     warnings: Integer | nil,
+      #     info_message: String | nil
+      #   }
+
+      # @rbs!
+      #   type queryResultError = {
+      #     error_code: Integer,
+      #     sql_state_marker: String,
+      #     sql_state: String | nil,
+      #     error_message: String | nil
+      #   }
+
+      # @rbs!
+      #   type queryResultSet = {
+      #     columns: Array[{
+      #       catalog: String,
+      #       schema: String,
+      #       table: String,
+      #       org_table: String,
+      #       name: String,
+      #       charset: String,
+      #       column_length: Integer,
+      #       type: String
+      #     }],
+      #     rows: Array[Hash[Symbol, String]],
+      #     row_count: Integer
+      #   }
+
+      # @rbs!
+      #   type queryResult = queryResultOk | queryResultError | queryResultSet
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs sql: String
+      # @rbs return: queryResult
       def self.execute(connection, sql)
         query_payload = [0x03].pack('C') + sql.encode('utf-8')
         connection.send_packet(query_payload)
@@ -18,6 +58,8 @@ module MysqlReplicator
         end
       end
 
+      # @rbs payload: String
+      # @rbs return: queryResultOk
       def self.parse_ok(payload)
         offset = 1 # Skip 0x00
 
@@ -57,6 +99,8 @@ module MysqlReplicator
         }
       end
 
+      # @rbs payload: String
+      # @rbs return: queryResultError
       def self.parse_error(payload)
         error_code = payload[1..2].unpack('v')[0]
         sql_state_marker = payload[3].chr
@@ -71,6 +115,9 @@ module MysqlReplicator
         }
       end
 
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs payload: String
+      # @rbs return: queryResultSet
       def self.parse_result_set(connection, payload)
         # Read columns definition
         columns = []
@@ -100,6 +147,17 @@ module MysqlReplicator
         { columns: columns, rows: rows, row_count: rows.length }
       end
 
+      # @rbs payload: String
+      # @rbs return: {
+      #   catalog: String,
+      #   schema: String,
+      #   table: String,
+      #   org_table: String,
+      #   name: String,
+      #   charset: String,
+      #   column_length: Integer,
+      #   type: String
+      # }
       def self.parse_column_definition(payload)
         offset = 0
 
@@ -154,6 +212,18 @@ module MysqlReplicator
         }
       end
 
+      # @rbs payload: String
+      # @rbs columns: Array[{
+      #   catalog: String,
+      #   schema: String,
+      #   table: String,
+      #   org_table: String,
+      #   name: String,
+      #   charset: String,
+      #   column_length: Integer,
+      #   type: String
+      # }]
+      # @rbs return: Hash[Symbol, String]
       def self.parse_row_data(payload, columns)
         first_byte = payload[0].unpack('C')[0]
 
@@ -183,6 +253,9 @@ module MysqlReplicator
         row
       end
 
+      # @rbs payload: String
+      # @rbs offset: Integer
+      # @rbs return: { value: Integer?, bytes_read: Integer }
       def self.length_encoded_integer(payload, offset)
         first_byte = payload[offset].unpack('C')[0]
 
@@ -203,6 +276,8 @@ module MysqlReplicator
         end
       end
 
+      # @rbs value: Integer
+      # @rbs return: Integer
       def self.length_encoded_integer_size(value)
         return 1 if value.nil?
         return 1 if value <= 250
@@ -212,6 +287,9 @@ module MysqlReplicator
         9
       end
 
+      # @rbs payload: String
+      # @rbs offset: Integer
+      # @rbs return { value: String?, bytes_read: Integer }
       def self.length_encoded_string(payload, offset)
         length_info = length_encoded_integer(payload, offset)
         return { value: nil, bytes_read: length_info[:bytes_read] } if length_info[:value].nil?
@@ -226,6 +304,8 @@ module MysqlReplicator
         }
       end
 
+      # @rbs type: Integer
+      # @rbs return: String
       def self.type_to_string(type)
         case type
         when 0x00 then 'DECIMAL'

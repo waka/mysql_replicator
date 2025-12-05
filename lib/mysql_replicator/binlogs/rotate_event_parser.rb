@@ -1,8 +1,18 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   module Binlogs
     class RotateEventParser
+      # @rbs!
+      #   type execution = {
+      #     position: Integer,
+      #     filename: String
+      #   }
+
+      # @rbs payload: String
+      # @rbs checksum_enabled: bool
+      # @rbs return: execution
       def self.parse(payload, checksum_enabled = false)
         # Position (8 bytes, where the next binlog starts, Little Endian 64-bit)
         position = payload[0, 8].unpack('Q<')[0]

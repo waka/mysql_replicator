@@ -1,0 +1,76 @@
+# Generated from lib/mysql_replicator/connections/auth.rb with RBS::Inline
+
+module MysqlReplicator
+  module Connections
+    class Auth
+      CLIENT_PLUGIN_AUTH: Integer
+
+      CLIENT_SECURE_CONNECTION: Integer
+
+      CLIENT_PROTOCOL_41: Integer
+
+      CLIENT_CONNECT_WITH_DB: Integer
+
+      CLIENT_MULTI_STATEMENTS: Integer
+
+      CLIENT_MULTI_RESULTS: Integer
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs user: String
+      # @rbs password: String
+      # @rbs database: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @rbs return: void
+      def self.execute: (MysqlReplicator::Connection connection, String user, String password, String database, MysqlReplicator::Connections::Handshake::handshake handshake_info) -> void
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs user: String
+      # @rbs password: String
+      # @rbs database: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @rbs return: void
+      def self.caching_sha2_password_auth: (MysqlReplicator::Connection connection, String user, String password, String database, MysqlReplicator::Connections::Handshake::handshake handshake_info) -> void
+
+      # @rbs packet: MysqlReplicator::Connection::packet
+      # @rbs return: :success | :challenge
+      def self.handle_caching_sha2_password_response: (MysqlReplicator::Connection::packet packet) -> (:success | :challenge)
+
+      # @rbs user: String
+      # @rbs password: String
+      # @rbs database: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @rbs return: void
+      def self.build_caching_sha2_password_payload: (String user, String password, String database, MysqlReplicator::Connections::Handshake::handshake handshake_info) -> void
+
+      # Hash value for caching_sha2_password
+      # SHA256(password) XOR SHA256(SHA256(SHA256(password)) + salt)
+      #
+      # @rbs password: String
+      # @rbs salt: String
+      # @rbs return: String
+      def self.build_caching_sha2_password_hash: (String password, String salt) -> String
+
+      # @rbs password: String
+      # @rbs public_key: String
+      # @rbs scramble: String
+      # @rbs return: String
+      def self.build_rsa_encrypt_password_payload: (String password, String public_key, String scramble) -> String
+
+      # @rbs payload: String
+      # @rbs with_database: bool
+      # @rbs return: void
+      def self.debug_caching_sha2_password_payload: (String payload, bool with_database) -> void
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs password: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @return: void
+      def self.mysql_native_password_auth: (MysqlReplicator::Connection connection, String password, MysqlReplicator::Connections::Handshake::handshake handshake_info) -> untyped
+
+      # @rbs password: String
+      # @rbs salt: String
+      # @rbs return: String
+      def build_mysql_native_password_payload: (String password, String salt) -> String
+    end
+  end
+end

@@ -1,0 +1,6 @@
+# Generated from lib/mysql_replicator/error.rb with RBS::Inline
+
+module MysqlReplicator
+  class Error < StandardError
+  end
+end

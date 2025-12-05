@@ -1,12 +1,16 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 require 'stringio'
 
 module MysqlReplicator
   module Binlogs
     class XidEventParser
-      # @param payload [String] the event payload
-      # @return [Hash] parsed XID event data
+      # @rbs!
+      #   type execution = { xid: Integer }
+
+      # @rbs payload: String
+      # @rbs return: execution
       def self.parse(payload)
         io = StringIO.new(payload)
         io.set_encoding(Encoding::BINARY)

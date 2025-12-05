@@ -1,0 +1,57 @@
+# Generated from lib/mysql_replicator/string_io_util.rb with RBS::Inline
+
+module MysqlReplicator
+  class StringIOUtil
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_packed_integer: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_int8: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_uint8: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_int16: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_uint16: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_int24: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_uint24: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_int32: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_uint32: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_int48: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_uint48: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_int64: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
+    def self.read_uint64: (StringIO io) -> Integer
+  end
+end

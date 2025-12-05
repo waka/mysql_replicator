@@ -1,0 +1,31 @@
+# Generated from lib/mysql_replicator/binlogs/table_map_event_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class TableMapEventParser
+      type columnData = { ordinal_position: Integer, data_type: String, column_name: String, column_type: String, enum_values: Array[String | Integer], nullable: bool, column_default: String | nil, numeric_precision: Integer, numeric_scale: Integer, character_maximum_length: Integer, character_set_name: String, collation_name: String, primary_key: bool }
+
+      type execution = { database: String | nil, table: String | nil, table_id: Integer, columns: Array[columnData], flags: Integer }
+
+      # @rbs payload: String
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs return: execution
+      def self.parse: (String payload, MysqlReplicator::Connection connection) -> execution
+
+      # @rbs bytes: Array[Integer]
+      # @rbs return: Integer
+      def self.to_little_endian: (Array[Integer] bytes) -> Integer
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs database: String
+      # @rbs table: String
+      # @rbs return: Array[columnData]
+      def self.get_table_columns: (MysqlReplicator::Connection connection, String database, String table) -> Array[columnData]
+
+      # @rbs data_type: String
+      # @rbs column_type: String
+      # @rbs return: Array[String] | nil
+      def self.extract_enum_from_column_type: (String data_type, String column_type) -> (Array[String] | nil)
+    end
+  end
+end

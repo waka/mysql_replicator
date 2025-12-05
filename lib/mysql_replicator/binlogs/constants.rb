@@ -1,36 +1,37 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   module Binlogs
     # MySQL Field Types contants
     module FieldTypes
-      TINY_INT    = 'tinyint'
-      SMALL_INT   = 'smallint'
-      MEDIUM_INT  = 'mediumint'
-      INT         = 'int'
-      BIG_INT     = 'bigint'
-      FLOAT       = 'float'
-      DOUBLE      = 'double'
-      DECIMAL     = 'decimal'
-      DATETIME    = 'datetime'
-      DATE        = 'date'
-      TIME        = 'time'
-      TIMESTAMP   = 'timestamp'
-      CHAR        = 'char'
-      VARCHAR     = 'varchar'
-      TINY_TEXT   = 'tinytext'
-      MEDIUM_TEXT = 'mediumtext'
-      TEXT        = 'text'
-      LONG_TEXT   = 'longtext'
-      TINY_BLOB   = 'tinyblob'
-      MEDIUM_BLOB = 'mediumblob'
-      BLOB        = 'blob'
-      LONG_BLOB   = 'longblob'
-      BINARY      = 'binary'
-      VAR_BINARY  = 'varbinary'
-      JSON        = 'json'
-      ENUM        = 'enum'
-      UNKNOWN     = 'unknown'
+      TINY_INT    = 'tinyint' #: String
+      SMALL_INT   = 'smallint' #: String
+      MEDIUM_INT  = 'mediumint' #: String
+      INT         = 'int' #: String
+      BIG_INT     = 'bigint' #: String
+      FLOAT       = 'float' #: String
+      DOUBLE      = 'double' #: String
+      DECIMAL     = 'decimal' #: String
+      DATETIME    = 'datetime' #: String
+      DATE        = 'date' #: String
+      TIME        = 'time' #: String
+      TIMESTAMP   = 'timestamp' #: String
+      CHAR        = 'char' #: String
+      VARCHAR     = 'varchar' #: String
+      TINY_TEXT   = 'tinytext' #: String
+      MEDIUM_TEXT = 'mediumtext' #: String
+      TEXT        = 'text' #: String
+      LONG_TEXT   = 'longtext' #: String
+      TINY_BLOB   = 'tinyblob' #: String
+      MEDIUM_BLOB = 'mediumblob' #: String
+      BLOB        = 'blob' #: String
+      LONG_BLOB   = 'longblob' #: String
+      BINARY      = 'binary' #: String
+      VAR_BINARY  = 'varbinary' #: String
+      JSON        = 'json' #: String
+      ENUM        = 'enum' #: String
+      UNKNOWN     = 'unknown' #: String
 
       # Mapping from INFORMATION_SCHEMA DATA_TYPE to MySQL Field Type
       DATA_TYPE_MAP = {
@@ -60,8 +61,10 @@ module MysqlReplicator
         'varbinary' => VAR_BINARY,
         'enum' => ENUM,
         'json' => JSON
-      }.freeze
+      }.freeze #: Hash[String, String]
 
+      # @rbs data_type: String
+      # @rbs return: String
       def self.code_for(data_type)
         base_data_type = data_type.downcase
         DATA_TYPE_MAP[base_data_type] || UNKNOWN

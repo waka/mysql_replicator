@@ -1,0 +1,26 @@
+# Generated from lib/mysql_replicator/logger.rb with RBS::Inline
+
+module MysqlReplicator
+  class Logger
+    self.@logger: ::Logger
+
+    # @rbs! attr_writer logger: ::Logger
+    attr_writer logger: untyped
+
+    # @rbs message: String
+    # @rbs return: void
+    def self.debug: (String message) -> void
+
+    # @rbs message: String
+    # @rbs return: void
+    def self.info: (String message) -> void
+
+    # @rbs message: String
+    # @rbs return: void
+    def self.warn: (String message) -> void
+
+    # @rbs message: String
+    # @return: void
+    def self.error: (String message) -> untyped
+  end
+end

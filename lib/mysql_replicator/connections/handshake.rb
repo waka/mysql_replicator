@@ -1,8 +1,23 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   module Connections
     class Handshake
+      # @rbs!
+      #   type handshake = {
+      #     protocol_version: String,
+      #     server_version: String | nil,
+      #     connection_id: Integer,
+      #     capability_flags: Integer,
+      #     charset: String,
+      #     status_flags: Integer,
+      #     auth_plugin_name: String | nil,
+      #     auth_plugin_data: String
+      #   }
+
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs return: handshake
       def self.execute(connection)
         handshake_response_packet = connection.read_packet
         handshake_info = parse_handshake_response_packet(handshake_response_packet)
@@ -11,6 +26,8 @@ module MysqlReplicator
         handshake_info
       end
 
+      # @rbs packet: MysqlReplicator::Types::packet
+      # @rbs return: handshake
       def self.parse_handshake_response_packet(packet)
         payload = packet[:payload]
         offset = 0
@@ -95,6 +112,8 @@ module MysqlReplicator
         }
       end
 
+      # @rbs handshake_info: handshake
+      # @rbs return: void
       def self.debug_handshake_info(handshake_info)
         MysqlReplicator::Logger.debug \
           "===== Start Handshake Info =====\n" \

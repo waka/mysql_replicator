@@ -1,15 +1,34 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 require 'stringio'
 
 module MysqlReplicator
   module Binlogs
     class RowsEventParser
-      # @param event_type [Symbol] the type of the event (:WRITE_ROWS, :UPDATE_ROWS, :DELETE_ROWS)
-      # @param payload [String] the event payload
-      # @param checksum_enabled [Boolean] whether checksum is enabled
-      # @param table_map [Hash] the table map for resolving table definitions
-      # @return [Hash] parsed write rows event data
+      # @rbs!
+      #   type rowData = {
+      #     ordinal_position: Integer,
+      #     data_type: String,
+      #     column_name: String,
+      #     value: String | Integer | bool | nil,
+      #     primary_key: bool
+      #   }
+
+      # @rbs!
+      #   type execution = {
+      #     table_id: Integer,
+      #     flags: Integer,
+      #     extra_data_length: Integer,
+      #     column_count: Integer,
+      #     rows: Array[rowData]
+      #   }
+
+      # @rbs event_type: :WRITE_ROWS | :UPDATE_ROWS | :DELETE_ROWS
+      # @rbs payload: String
+      # @rbs checksum_enabled bool
+      # @rbs table_map: Hash[Integer, MysqlReplicator::Binlogs::TableMapEventParser::execution]
+      # @rbs return: execution
       def self.parse(event_type, payload, checksum_enabled, table_map)
         io = StringIO.new(payload)
         io.set_encoding(Encoding::BINARY)
@@ -59,6 +78,11 @@ module MysqlReplicator
         }
       end
 
+      # @rbs io: StringIO
+      # @rbs column_count: Integer
+      # @rbs columns_present_bitmap: Array[Integer]
+      # @rbs table_def: MysqlReplicator::Binlogs::TableMapEventParser::execution
+      # @rbs return: Array[rowData]
       def self.parse_row(io, column_count, columns_present_bitmap, table_def)
         # Null bitmap
         # A bitmap indicating which columns are NULL
@@ -95,6 +119,8 @@ module MysqlReplicator
         row
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Integer
       def self.read_packed_integer(io)
         first = StringIOUtil.read_uint8(io)
         case first
@@ -111,12 +137,18 @@ module MysqlReplicator
         end
       end
 
+      # @rbs bitmap: Array[Integer]
+      # @rbs index: Integer
+      # @rbs return: bool
       def self.bit_set?(bitmap, index)
         byte_index = index / 8
         bit_index = index % 8
         (bitmap[byte_index] & (1 << bit_index)) != 0
       end
 
+      # @rbs bitmap: Array[Integer]
+      # @rbs max_bits: Integer
+      # @rbs return: Integer
       def self.count_bits(bitmap, max_bits)
         count = 0
         max_bits.times do |i|

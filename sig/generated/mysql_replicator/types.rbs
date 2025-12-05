@@ -1,0 +1,19 @@
+# Generated from lib/mysql_replicator/types.rb with RBS::Inline
+
+module MysqlReplicator
+  module Types
+    type packet = { length: Integer, sequence_id: Integer, payload: String }
+
+    type handshake = { protocol_version: String, server_version: String | nil, connection_id: Integer, capability_flags: Integer, charset: String, status_flags: Integer, auth_plugin_name: String | nil, auth_plugin_data: String }
+
+    type queryResultOk = { affected_rows: Integer | nil, insert_id: Integer | nil, status_flags: Integer | nil, warnings: Integer | nil, info_message: String | nil }
+
+    type queryResultError = { error_code: Integer, sql_state_marker: String, sql_state: String | nil, error_message: String | nil }
+
+    type queryResultSet = { columns: Array[{ catalog: String, schema: String, table: String, org_table: String, name: String, charset: String, column_length: Integer, type: String }], rows: Array[Hash[Symbol, String]], row_count: Integer }
+
+    type queryResult = queryResultOk | queryResultError | queryResultSet
+
+    type binlogEvent = { timestamp: String, event_type: String, server_id: Integer, length: Integer, next_position: Integer, flags: Integer, execution: Hash[Symbol, untyped] }
+  end
+end

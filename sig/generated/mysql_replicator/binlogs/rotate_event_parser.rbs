@@ -1,0 +1,14 @@
+# Generated from lib/mysql_replicator/binlogs/rotate_event_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class RotateEventParser
+      type execution = { position: Integer, filename: String }
+
+      # @rbs payload: String
+      # @rbs checksum_enabled: bool
+      # @rbs return: execution
+      def self.parse: (String payload, ?bool checksum_enabled) -> execution
+    end
+  end
+end

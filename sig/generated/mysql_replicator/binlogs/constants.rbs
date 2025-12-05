@@ -1,0 +1,69 @@
+# Generated from lib/mysql_replicator/binlogs/constants.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    # MySQL Field Types contants
+    module FieldTypes
+      TINY_INT: String
+
+      SMALL_INT: String
+
+      MEDIUM_INT: String
+
+      INT: String
+
+      BIG_INT: String
+
+      FLOAT: String
+
+      DOUBLE: String
+
+      DECIMAL: String
+
+      DATETIME: String
+
+      DATE: String
+
+      TIME: String
+
+      TIMESTAMP: String
+
+      CHAR: String
+
+      VARCHAR: String
+
+      TINY_TEXT: String
+
+      MEDIUM_TEXT: String
+
+      TEXT: String
+
+      LONG_TEXT: String
+
+      TINY_BLOB: String
+
+      MEDIUM_BLOB: String
+
+      BLOB: String
+
+      LONG_BLOB: String
+
+      BINARY: String
+
+      VAR_BINARY: String
+
+      JSON: String
+
+      ENUM: String
+
+      UNKNOWN: String
+
+      # Mapping from INFORMATION_SCHEMA DATA_TYPE to MySQL Field Type
+      DATA_TYPE_MAP: Hash[String, String]
+
+      # @rbs data_type: String
+      # @rbs return: String
+      def self.code_for: (String data_type) -> String
+    end
+  end
+end

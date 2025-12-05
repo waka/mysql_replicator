@@ -73,6 +73,9 @@ GEM
       ffi (~> 1.0)
     rbs (3.9.5)
       logger
+    rbs-inline (0.12.0)
+      prism (>= 0.29)
+      rbs (>= 3.8.0)
     rdoc (6.14.2)
       erb
       psych (>= 4.0.0)
@@ -145,10 +148,10 @@ DEPENDENCIES
   mysql_replicator!
   ostruct (~> 0.6)
   rake (~> 13.0)
-  rbs
+  rbs-inline
   rspec (~> 3.0)
   rubocop (~> 1.21)
-  steep
+  steep (>= 1.10)
 
 BUNDLED WITH
    2.6.8

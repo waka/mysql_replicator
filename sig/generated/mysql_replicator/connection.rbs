@@ -1,0 +1,103 @@
+# Generated from lib/mysql_replicator/connection.rb with RBS::Inline
+
+module MysqlReplicator
+  class Connection
+    type packet = { length: Integer, sequence_id: Integer, payload: String }
+
+    @handshake_info: MysqlReplicator::Connections::Handshake::handshake?
+
+    @socket: TCPSocket?
+
+    @connected: bool
+
+    @sequence_id: Integer
+
+    @database: String
+
+    @password: String
+
+    @user: String
+
+    @port: Integer
+
+    @host: String
+
+    # @rbs! attr_reader host: String
+    # @rbs! attr_reader port: Integer
+    # @rbs! attr_reader user: String
+    # @rbs! attr_reader password: String
+    # @rbs! attr_reader database: String
+    attr_reader host: untyped
+
+    # @rbs! attr_reader host: String
+    # @rbs! attr_reader port: Integer
+    # @rbs! attr_reader user: String
+    # @rbs! attr_reader password: String
+    # @rbs! attr_reader database: String
+    attr_reader port: untyped
+
+    # @rbs! attr_reader host: String
+    # @rbs! attr_reader port: Integer
+    # @rbs! attr_reader user: String
+    # @rbs! attr_reader password: String
+    # @rbs! attr_reader database: String
+    attr_reader user: untyped
+
+    # @rbs! attr_reader host: String
+    # @rbs! attr_reader port: Integer
+    # @rbs! attr_reader user: String
+    # @rbs! attr_reader password: String
+    # @rbs! attr_reader database: String
+    attr_reader password: untyped
+
+    # @rbs! attr_reader host: String
+    # @rbs! attr_reader port: Integer
+    # @rbs! attr_reader user: String
+    # @rbs! attr_reader password: String
+    # @rbs! attr_reader database: String
+    attr_reader database: untyped
+
+    # @rbs host: String
+    # @rbs port: Integer
+    # @rbs user: String
+    # @rbs password: String
+    # @rbs database: String
+    # @rbs return: void
+    def initialize: (?host: String, ?port: Integer, ?user: String, ?password: String, ?database: String) -> void
+
+    # @rbs return: void
+    def reset_sequence_id: () -> void
+
+    # @rbs return: -> bool
+    def connected?: () -> untyped
+
+    # @rbs return: -> void
+    def connect: () -> untyped
+
+    # @rbs sql: String
+    # @rbs return: MysqlReplicator::Types::queryResult | nil
+    def query: (String sql) -> (MysqlReplicator::Types::queryResult | nil)
+
+    # @rbs return: 'PONG' | 'ERROR'
+    def ping: () -> ("PONG" | "ERROR")
+
+    # @rbs return: void
+    def close: () -> void
+
+    # @rbs return: packet
+    def read_packet: () -> packet
+
+    # @rbs payload: String
+    # @rbs return: void
+    def send_packet: (String payload) -> void
+
+    # @rbs return: void
+    def flush_socket_buffer: () -> void
+
+    # @rbs return: String
+    def connection_id: () -> String
+
+    # @rbs return: MysqlReplicator::Connection
+    def dup: () -> MysqlReplicator::Connection
+  end
+end

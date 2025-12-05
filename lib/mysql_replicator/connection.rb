@@ -1,11 +1,40 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 require 'socket'
 
 module MysqlReplicator
   class Connection
+    # @rbs!
+    #   type packet = {
+    #     length: Integer,
+    #     sequence_id: Integer,
+    #     payload: String
+    #   }
+
+    # @rbs @host: String
+    # @rbs @port: Integer
+    # @rbs @user: String
+    # @rbs @password: String
+    # @rbs @database: String
+    # @rbs @sequence_id: Integer
+    # @rbs @connected: bool
+    # @rbs @socket: TCPSocket?
+    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake?
+
+    # @rbs! attr_reader host: String
+    # @rbs! attr_reader port: Integer
+    # @rbs! attr_reader user: String
+    # @rbs! attr_reader password: String
+    # @rbs! attr_reader database: String
     attr_reader :host, :port, :user, :password, :database
 
+    # @rbs host: String
+    # @rbs port: Integer
+    # @rbs user: String
+    # @rbs password: String
+    # @rbs database: String
+    # @rbs return: void
     def initialize(host: 'localhost', port: 3306, user: 'root', password: '', database: '')
       @host = host
       @port = port
@@ -13,20 +42,23 @@ module MysqlReplicator
       @password = password
       @database = database
 
-      @socket = nil
       @sequence_id = 0
       @connected = false
+      @socket = nil
       @handshake_info = nil
     end
 
+    # @rbs return: void
     def reset_sequence_id
       @sequence_id = 0
     end
 
+    # @rbs return: -> bool
     def connected?
       @connected
     end
 
+    # @rbs return: -> void
     def connect
       if @connected
         MysqlReplicator::Logger.warn 'Connection is already connected'
@@ -46,6 +78,8 @@ module MysqlReplicator
       raise e
     end
 
+    # @rbs sql: String
+    # @rbs return: MysqlReplicator::Types::queryResult | nil
     def query(sql)
       unless @connected
         MysqlReplicator::Logger.warn 'Connection is not connected'
@@ -58,10 +92,11 @@ module MysqlReplicator
       MysqlReplicator::Connections::Query.execute(self, sql)
     end
 
+    # @rbs return: 'PONG' | 'ERROR'
     def ping
       unless @connected
         MysqlReplicator::Logger.warn 'Connection is not connected'
-        return
+        return 'ERROR'
       end
 
       reset_sequence_id
@@ -74,6 +109,7 @@ module MysqlReplicator
       success ? 'PONG' : 'ERROR'
     end
 
+    # @rbs return: void
     def close
       if !@connected && (@socket.nil? || @socket.closed?)
         MysqlReplicator::Logger.warn 'Connection is not connected'
@@ -96,6 +132,7 @@ module MysqlReplicator
       MysqlReplicator::Logger.info "Disconnected to MySQL server at #{@host}:#{@port}"
     end
 
+    # @rbs return: packet
     def read_packet
       header = @socket.read(4)
       if header.nil? || header.length != 4
@@ -120,9 +157,15 @@ module MysqlReplicator
       # Update to next expected sequence ID
       @sequence_id = (sequence_id + 1) % 256
 
-      packet
+      {
+        length: packet_length,
+        sequence_id: sequence_id,
+        payload: payload
+      }
     end
 
+    # @rbs payload: String
+    # @rbs return: void
     def send_packet(payload)
       packet_length = payload.length
       header = [packet_length].pack('V')[0..2] + [@sequence_id].pack('C')
@@ -132,6 +175,7 @@ module MysqlReplicator
       MysqlReplicator::Logger.debug "Sent packet: #{packet.inspect}"
     end
 
+    # @rbs return: void
     def flush_socket_buffer
       flushed_data = ''
 
@@ -156,10 +200,12 @@ module MysqlReplicator
       MysqlReplicator::Logger.debug "#{flushed_data.length} bytes of unread data cleared"
     end
 
+    # @rbs return: String
     def connection_id
       @handshake_info[:connection_id]
     end
 
+    # @rbs return: MysqlReplicator::Connection
     def dup
       new_connection = self.class.new(
         host: @host,

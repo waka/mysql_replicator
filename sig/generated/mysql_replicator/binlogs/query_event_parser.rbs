@@ -1,0 +1,14 @@
+# Generated from lib/mysql_replicator/binlogs/query_event_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class QueryEventParser
+      type execution = { thread_id: Integer, exec_time: Integer, error_code: Integer, database: String | nil, sql: String | nil }
+
+      # @rbs payload: String
+      # @rbs checksum_enabled: bool
+      # @rbs return: execution
+      def self.parse: (String payload, bool checksum_enabled) -> execution
+    end
+  end
+end

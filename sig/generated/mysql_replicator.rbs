@@ -1,0 +1,16 @@
+# Generated from lib/mysql_replicator.rb with RBS::Inline
+
+module MysqlReplicator
+  # @rbs host: String
+  # @rbs port: Integer
+  # @rbs user: String
+  # @rbs password: String
+  # @rbs database: String
+  # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> void }?
+  # @rbs return: void
+  def self.run: (?host: String, ?port: Integer, ?user: String, ?password: String, ?database: String) ?{ (?) -> untyped } -> void
+
+  # @rbs custom_logger: Logger
+  # @rbs return: void
+  def self.logger=: (Logger custom_logger) -> void
+end

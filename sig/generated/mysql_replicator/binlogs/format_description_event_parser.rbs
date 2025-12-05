@@ -1,0 +1,13 @@
+# Generated from lib/mysql_replicator/binlogs/format_description_event_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class FormatDescriptionEventParser
+      type execution = { binlog_version: String, server_version: String }
+
+      # @rbs payload: String
+      # @rbs return: execution
+      def self.parse: (String payload) -> execution
+    end
+  end
+end

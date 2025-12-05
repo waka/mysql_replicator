@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 require 'digest'
 require 'openssl'
@@ -6,13 +7,19 @@ require 'openssl'
 module MysqlReplicator
   module Connections
     class Auth
-      CLIENT_PLUGIN_AUTH = 0x00080000
-      CLIENT_SECURE_CONNECTION = 0x00008000
-      CLIENT_PROTOCOL_41 = 0x00000200
-      CLIENT_CONNECT_WITH_DB = 0x00000008
-      CLIENT_MULTI_STATEMENTS = 0x00010000
-      CLIENT_MULTI_RESULTS = 0x00020000
+      CLIENT_PLUGIN_AUTH = 0x00080000 #: Integer
+      CLIENT_SECURE_CONNECTION = 0x00008000 #: Integer
+      CLIENT_PROTOCOL_41 = 0x00000200 #: Integer
+      CLIENT_CONNECT_WITH_DB = 0x00000008 #: Integer
+      CLIENT_MULTI_STATEMENTS = 0x00010000 #: Integer
+      CLIENT_MULTI_RESULTS = 0x00020000 #: Integer
 
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs user: String
+      # @rbs password: String
+      # @rbs database: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @rbs return: void
       def self.execute(connection, user, password, database, handshake_info)
         auth_plugin_name = handshake_info[:auth_plugin_name]
 
@@ -31,6 +38,12 @@ module MysqlReplicator
         connection.flush_socket_buffer
       end
 
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs user: String
+      # @rbs password: String
+      # @rbs database: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @rbs return: void
       def self.caching_sha2_password_auth(connection, user, password, database, handshake_info)
         auth_payload = build_caching_sha2_password_payload(user, password, database, handshake_info)
         debug_caching_sha2_password_payload(auth_payload, !database.empty?)
@@ -63,6 +76,8 @@ module MysqlReplicator
         raise MysqlReplicator::Error, 'RSA encryption authentication failed'
       end
 
+      # @rbs packet: MysqlReplicator::Connection::packet
+      # @rbs return: :success | :challenge
       def self.handle_caching_sha2_password_response(packet)
         payload = packet[:payload]
 
@@ -93,6 +108,11 @@ module MysqlReplicator
         end
       end
 
+      # @rbs user: String
+      # @rbs password: String
+      # @rbs database: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @rbs return: void
       def self.build_caching_sha2_password_payload(user, password, database, handshake_info)
         # Client feature flag
         client_flags = CLIENT_PROTOCOL_41 |
@@ -137,6 +157,10 @@ module MysqlReplicator
 
       # Hash value for caching_sha2_password
       # SHA256(password) XOR SHA256(SHA256(SHA256(password)) + salt)
+      #
+      # @rbs password: String
+      # @rbs salt: String
+      # @rbs return: String
       def self.build_caching_sha2_password_hash(password, salt)
         return '' if password.empty?
 
@@ -155,6 +179,10 @@ module MysqlReplicator
         payload
       end
 
+      # @rbs password: String
+      # @rbs public_key: String
+      # @rbs scramble: String
+      # @rbs return: String
       def self.build_rsa_encrypt_password_payload(password, public_key, scramble)
         rsa_public_key = OpenSSL::PKey::RSA.new(public_key)
 
@@ -180,6 +208,9 @@ module MysqlReplicator
         end
       end
 
+      # @rbs payload: String
+      # @rbs with_database: bool
+      # @rbs return: void
       def self.debug_caching_sha2_password_payload(payload, with_database)
         offset = 0
 
@@ -229,6 +260,10 @@ module MysqlReplicator
           '===== End Auth Payload ====='
       end
 
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs password: String
+      # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
+      # @return: void
       def self.mysql_native_password_auth(connection, password, handshake_info)
         auth_payload = build_mysql_native_password_payload(password, handshake_info[:auth_plugin_data])
         connection.send_packet(auth_payload)
@@ -242,6 +277,9 @@ module MysqlReplicator
           "Payload = #{auth_response_packet[:payload].unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
       end
 
+      # @rbs password: String
+      # @rbs salt: String
+      # @rbs return: String
       def build_mysql_native_password_payload(password, salt)
         return '' if password.empty?
 

@@ -1,10 +1,20 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 module MysqlReplicator
   # Binlog handler using MySQL Replication Protocol
   class BinlogClient
+    # @rbs @connection: MysqlReplicator::Connection
+    # @rbs @server_id: Integer
+    # @rbs @checksum_type: String?
+    # @rbs @event_listener: ?(^(MysqlReplicator::Binlogs::EventParser::binlogEvent) -> void)?
+
+    # @rbs! attr_reader connection: MysqlReplicator::Connection
     attr_reader :connection
 
+    # @rbs connection: MysqlReplicator::Connection
+    # @rbs server_id: Integer
+    # @rbs return void
     def initialize(connection, server_id = 1001)
       @connection = connection
       @server_id = server_id
@@ -12,10 +22,13 @@ module MysqlReplicator
       @event_listener = nil
     end
 
+    # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> void }
+    # @rbs return: void
     def on(&block)
       @event_listener = block
     end
 
+    # @rbs return: void
     def start_replication
       @connection.connect unless @connection.connected?
 
@@ -40,17 +53,20 @@ module MysqlReplicator
       end
     end
 
+    # @rbs return: void
     def stop_replication
       @connection.flush_socket_buffer
       unregister_as_slave
       @connection.close
     end
 
+    # @rbs return: String
     def master_status
       result = @connection.query('SHOW MASTER STATUS')
       result[:rows][0]
     end
 
+    # @rbs return: void
     def register_as_slave
       @connection.reset_sequence_id
 
@@ -87,6 +103,7 @@ module MysqlReplicator
       MysqlReplicator::Logger.info 'Successfully registered as slave'
     end
 
+    # @rbs return: void
     def unregister_as_slave
       @connection.reset_sequence_id
 
@@ -108,6 +125,7 @@ module MysqlReplicator
       MysqlReplicator::Logger.info 'Successfully unregistered as slave'
     end
 
+    # @rbs return: void
     def configure_binlog_checksum
       result = @connection.query('SHOW VARIABLES LIKE "binlog_checksum"')
       @checksum_type = result[:rows][0][:value]
@@ -124,6 +142,9 @@ module MysqlReplicator
       end
     end
 
+    # @rbs binlog_file: String
+    # @rbs binlog_position: Integer
+    # @rbs return: void
     def start_binlog_dump(binlog_file, binlog_position)
       @connection.reset_sequence_id
 
@@ -144,6 +165,7 @@ module MysqlReplicator
         "Started binlog dump from #{binlog_file} at position #{binlog_position}"
     end
 
+    # @rbs return: void
     def handle_binlog_events
       event_parser = MysqlReplicator::Binlogs::EventParser.new
 

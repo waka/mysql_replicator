@@ -1,0 +1,35 @@
+# Generated from lib/mysql_replicator/binlogs/event_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class EventParser
+      type execution = MysqlReplicator::Binlogs::FormatDescriptionEventParser::execution | MysqlReplicator::Binlogs::QueryEventParser::execution | MysqlReplicator::Binlogs::RotateEventParser::execution | MysqlReplicator::Binlogs::RowsEventParser::execution | MysqlReplicator::Binlogs::TableMapEventParser::execution | MysqlReplicator::Binlogs::XidEventParser::execution | Hash[untyped, untyped]
+
+      type binlogEvent = { timestamp: Time, event_type: Symbol, server_id: Integer, length: Integer, next_position: Integer, flags: Integer, execution: execution }
+
+      @stored_table_map: Hash[Integer, MysqlReplicator::Binlogs::TableMapEventParser::execution]
+
+      # @rbs return: void
+      def initialize: () -> void
+
+      # @rbs payload: String
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs checksum_enabled: bool
+      # @rbs return: binlogEvent
+      def execute: (String payload, MysqlReplicator::Connection connection, bool checksum_enabled) -> binlogEvent
+
+      # Basic event type identification
+      #
+      # @rbs event_type: Integer
+      # @rbs return: Symbol
+      def readable_event_type: (Integer event_type) -> Symbol
+
+      # @rbs event_type: Symbol
+      # @rbs payload: String
+      # @rbs connection: MysqlReplicator::Connection
+      # @rbs checksum_enabled: bool
+      # @rbs return: execution
+      def parse_execution_data: (Symbol event_type, String payload, MysqlReplicator::Connection connection, bool checksum_enabled) -> execution
+    end
+  end
+end
