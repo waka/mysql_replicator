@@ -9,6 +9,8 @@ module MysqlReplicator
 
     @checksum_type: String?
 
+    @event_listener: ^(MysqlReplicator::Binlogs::EventParser::binlogEvent) -> untyped | nil
+
     # @rbs! attr_reader connection: MysqlReplicator::Connection
     attr_reader connection: untyped
 
@@ -17,7 +19,7 @@ module MysqlReplicator
     # @rbs return void
     def initialize: (MysqlReplicator::Connection connection, ?Integer server_id) -> void
 
-    # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> void }
+    # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> untyped | nil }
     # @rbs return: void
     def on: () ?{ (?) -> untyped } -> void
 

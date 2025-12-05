@@ -19,8 +19,8 @@ module MysqlReplicator
     # @rbs @database: String
     # @rbs @sequence_id: Integer
     # @rbs @connected: bool
-    # @rbs @socket: TCPSocket | nil
-    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake | nil
+    # @rbs @socket: TCPSocket
+    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake
 
     # @rbs! attr_reader host: String
     # @rbs! attr_reader port: Integer
@@ -44,8 +44,6 @@ module MysqlReplicator
 
       @sequence_id = 0
       @connected = false
-      @socket = nil
-      @handshake_info = nil
     end
 
     # @rbs return: void
@@ -123,10 +121,7 @@ module MysqlReplicator
         send_packet(quit_payload)
       end
 
-      if @socket && !@socket.closed?
-        @socket.close
-        @socket = nil
-      end
+      @socket.close unless @socket.closed?
 
       @connected = false
       MysqlReplicator::Logger.info "Disconnected to MySQL server at #{@host}:#{@port}"
@@ -134,6 +129,10 @@ module MysqlReplicator
 
     # @rbs return: packet
     def read_packet
+      if @socket.nil?
+        raise MysqlReplicator::Error, 'TCPSocket is nil'
+      end
+
       header = @socket.read(4)
       if header.nil? || header.length != 4
         raise MysqlReplicator::Error, 'Failed to read packet header'
@@ -167,6 +166,10 @@ module MysqlReplicator
     # @rbs payload: String
     # @rbs return: void
     def send_packet(payload)
+      if @socket.nil?
+        raise MysqlReplicator::Error, 'TCPSocket is nil'
+      end
+
       packet_length = payload.length
       header = ([packet_length].pack('V')[0..2] || '') + [@sequence_id].pack('C').to_s
       @socket.write(header + payload)
@@ -187,7 +190,7 @@ module MysqlReplicator
           data = @socket.read_nonblock(1024)
           flushed_data += data
           MysqlReplicator::Logger.debug \
-            "Found unread data: #{data.unpack('C*').map { |b| format('%02X', b) }.join(' ')}"
+            "Found unread data: #{MysqlReplicator::StringUtil.read_array_from_int8(data).map { |b| format('%02X', b) }.join(' ')}"
         end
 
         sleep 0.1

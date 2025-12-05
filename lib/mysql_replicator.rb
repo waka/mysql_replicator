@@ -28,7 +28,7 @@ module MysqlReplicator
   # @rbs user: String
   # @rbs password: String
   # @rbs database: String
-  # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> void }?
+  # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> untyped | nil }?
   # @rbs return: void
   def self.run(host: '127.0.0.1', port: 3306, user: 'root', password: 'root', database: '', &block)
     conn = MysqlReplicator::Connection.new(
