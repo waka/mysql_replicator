@@ -3,7 +3,7 @@
 module MysqlReplicator
   module Binlogs
     class TableMapEventParser
-      type columnData = { ordinal_position: Integer, data_type: String, column_name: String, column_type: String, enum_values: Array[String | Integer], nullable: bool, column_default: String | nil, numeric_precision: Integer, numeric_scale: Integer, character_maximum_length: Integer, character_set_name: String, collation_name: String, primary_key: bool }
+      type columnData = { ordinal_position: Integer, data_type: String, column_name: String, column_type: String, enum_values: Array[String] | nil, nullable: bool, column_default: String | nil, numeric_precision: Integer, numeric_scale: Integer, character_maximum_length: Integer, character_set_name: String, collation_name: String, primary_key: bool }
 
       type execution = { database: String | nil, table: String | nil, table_id: Integer, columns: Array[columnData], flags: Integer }
 

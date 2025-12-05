@@ -1,4 +1,5 @@
 # frozen_string_literal: true
+# rbs_inline: enabled
 
 require 'bigdecimal'
 require 'json'
@@ -6,6 +7,8 @@ require 'json'
 module MysqlReplicator
   module Binlogs
     class ColumnParser
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
       def self.parse(io, column_def)
         type_code = MysqlReplicator::Binlogs::FieldTypes.code_for(column_def[:data_type])
 
@@ -67,35 +70,53 @@ module MysqlReplicator
         end
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Integer
       def self.parse_tinyint(io)
         MysqlReplicator::StringIOUtil.read_int8(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Integer
       def self.parse_smallint(io)
         MysqlReplicator::StringIOUtil.read_int16(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Integer
       def self.parse_mediumint(io)
         MysqlReplicator::StringIOUtil.read_int24(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Integer
       def self.parse_int(io)
         MysqlReplicator::StringIOUtil.read_int32(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Integer
       def self.parse_bigint(io)
         MysqlReplicator::StringIOUtil.read_int64(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Float
       def self.parse_float(io)
-        io.read(4).unpack('e')[0]
+        MysqlReplicator::StringIOUtil.read_float32(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: Float
       def self.parse_double(io)
-        io.read(8).unpack('E')[0]
+        MysqlReplicator::StringIOUtil.read_double64(io)
       end
 
       # This is sensitive...
+      #
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: BigDecimal
       def self.parse_decimal(io, column_def)
         precision = column_def[:numeric_precision] || 10
         scale = column_def[:numeric_scale] || 0
@@ -106,7 +127,7 @@ module MysqlReplicator
         frac_bytes = decimal_storage_bytes(scale)
         total_bytes = intg_bytes + frac_bytes
 
-        data = io.read(total_bytes).unpack('C*')
+        data = MysqlReplicator::StringIOUtil.read_array_from_int8(io, total_bytes)
 
         # top level bit is sign bit (1 = positive, 0 = negative)
         negative = (data[0] & 0x80) == 0
@@ -115,9 +136,9 @@ module MysqlReplicator
         data = data.map { |b| b ^ 0xFF } if negative
 
         # parse integer part
-        intg_part = parse_decimal_digits(data[0, intg_bytes], intg)
+        intg_part = parse_decimal_digits(data[0, intg_bytes] || [], intg)
         # parse fractional part
-        frac_part = parse_decimal_digits(data[intg_bytes, frac_bytes], scale)
+        frac_part = parse_decimal_digits(data[intg_bytes, frac_bytes] || [], scale)
 
         result = "#{intg_part}.#{frac_part.to_s.rjust(scale, '0')}"
         result = "-#{result}" if negative
@@ -125,10 +146,12 @@ module MysqlReplicator
         BigDecimal(result)
       end
 
+      # @rbs io: StringIO
+      # @return: String
       def self.parse_datetime(io)
         # 5bytes if fractional seconds precision is 0
         # format: 1bit sign + 17bits year*13month+month + 5bits day + 5bits hour + 6bits minute + 6bits second
-        data = io.read(5).unpack('C5')
+        data = MysqlReplicator::StringIOUtil.read_str(io, 5).unpack('C5').map(&:to_i)
         value = (data[0] << 32) | (data[1] << 24) | (data[2] << 16) | (data[3] << 8) | data[4]
 
         # top level bit is sign bit
@@ -150,6 +173,8 @@ module MysqlReplicator
           "#{format('%02d', hour)}:#{format('%02d', minute)}:#{format('%02d', second)}"
       end
 
+      # @rbs io: StringIO
+      # @return: String
       def self.parse_date(io)
         # 3bytes: YYYY*16*32 + MM*32 + DD
         value = MysqlReplicator::StringIOUtil.read_uint24(io)
@@ -161,10 +186,12 @@ module MysqlReplicator
         "#{year}-#{format('%02d', month)}-#{format('%02d', day)}"
       end
 
+      # @rbs io: StringIO
+      # @return: String
       def self.parse_time(io)
         # 3bytes if fractional seconds precision is 0
         # format: 1bit sign + 1bit unused + 10bits hour + 6bits minute + 6bits second
-        data = io.read(3).unpack('C3')
+        data = MysqlReplicator::StringIOUtil.read_str(io, 3).unpack('C3').map(&:to_i)
         value = (data[0] << 16) | (data[1] << 8) | data[2]
 
         negative = (value & 0x800000) == 0
@@ -181,12 +208,17 @@ module MysqlReplicator
         end
       end
 
+      # @rbs io: StringIO
+      # @return: Integer
       def self.parse_timestamp(io)
         # 4bytes if fractional seconds precision is 0
         # Unix Timestamp is Big-Engian
-        io.read(4).unpack('N')[0]
+        MysqlReplicator::StringIOUtil.read_uint32_big_endian(io)
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_varchar(io, column_def)
         max_length = column_def[:character_maximum_length] || 255
         charset = column_def[:character_set_name]
@@ -205,10 +237,12 @@ module MysqlReplicator
                    MysqlReplicator::StringIOUtil.read_uint8(io)
                  end
 
-        value = io.read(length)
+        value = MysqlReplicator::StringIOUtil.read_str(io, length)
         charset ? value.force_encoding('utf-8') : value
       end
 
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_char(io, column_def)
         max_length = column_def[:character_maximum_length] || 10
         charset = column_def[:character_set_name]
@@ -227,76 +261,106 @@ module MysqlReplicator
                    MysqlReplicator::StringIOUtil.read_uint8(io)
                  end
 
-        value = io.read(length)
+        value = MysqlReplicator::StringIOUtil.read_str(io, length)
         charset ? value.force_encoding('utf-8') : value
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_tinytext(io, column_def)
         charset = column_def[:character_set_name]
         length = MysqlReplicator::StringIOUtil.read_uint8(io)
 
-        value = io.read(length)
+        value = MysqlReplicator::StringIOUtil.read_str(io, length)
         charset ? value.force_encoding('utf-8') : value
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_text(io, column_def)
         charset = column_def[:character_set_name]
         length = MysqlReplicator::StringIOUtil.read_uint16(io)
 
-        value = io.read(length)
+        value = MysqlReplicator::StringIOUtil.read_str(io, length)
         charset ? value.force_encoding('utf-8') : value
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_mediumtext(io, column_def)
         charset = column_def[:character_set_name]
         length = MysqlReplicator::StringIOUtil.read_uint24(io)
 
-        value = io.read(length)
+        value = MysqlReplicator::StringIOUtil.read_str(io, length)
         charset ? value.force_encoding('utf-8') : value
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_longtext(io, column_def)
         charset = column_def[:character_set_name]
         length = MysqlReplicator::StringIOUtil.read_uint32(io)
 
-        value = io.read(length)
+        value = MysqlReplicator::StringIOUtil.read_str(io, length)
         charset ? value.force_encoding('utf-8') : value
       end
 
+      # @rbs io: StringIO
+      # @rbs return: String
       def self.parse_tinyblob(io)
         length = MysqlReplicator::StringIOUtil.read_uint8(io)
-        io.read(length)
+        MysqlReplicator::StringIOUtil.read_str(io, length)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: String
       def self.parse_blob(io)
         length = MysqlReplicator::StringIOUtil.read_uint16(io)
-        io.read(length)
+        MysqlReplicator::StringIOUtil.read_str(io, length)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: String
       def self.parse_mediumblob(io)
         length = MysqlReplicator::StringIOUtil.read_uint24(io)
-        io.read(length)
+        MysqlReplicator::StringIOUtil.read_str(io, length)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: String
       def self.parse_longblob(io)
         length = MysqlReplicator::StringIOUtil.read_uint32(io)
-        io.read(length)
+        MysqlReplicator::StringIOUtil.read_str(io, length)
       end
 
+      # @rbs io: StringIO
+      # @rbs return: String
       def self.parse_varbinary(io, column_def)
         parse_varchar(io, column_def)
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
       def self.parse_binary(io, column_def)
         parse_char(io, column_def)
       end
 
+      # @rbs io: StringIO
+      # @return Hash[Symbol, String | Integer | bool | nil]
       def self.parse_json(io)
         length = MysqlReplicator::StringIOUtil.read_uint32(io)
         data = io.read(length)
         MysqlReplicator::Binlogs::JsonParser.parse(data)
       end
 
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String | Integer
       def self.parse_enum(io, column_def)
         enum_values = column_def[:enum_values] || []
         index = if enum_values && enum_values.length > 255
@@ -313,6 +377,8 @@ module MysqlReplicator
         end
       end
 
+      # @rbs digits: Integer
+      # @rbs return: Integer
       def self.decimal_storage_bytes(digits)
         # Each group of 9 digits takes 4 bytes
         full_groups = digits / 9
@@ -320,6 +386,9 @@ module MysqlReplicator
         (full_groups * 4) + [0, 1, 1, 2, 2, 3, 3, 4, 4][leftover_digits]
       end
 
+      # @rbs bytes: Array[Integer]
+      # @rbs digits: Integer
+      # @rbs return: Integer
       def self.parse_decimal_digits(bytes, digits)
         return 0 if digits == 0 || bytes.nil? || bytes.empty?
 
@@ -345,7 +414,7 @@ module MysqlReplicator
                 (bytes[offset + 1] << 16) |
                 (bytes[offset + 2] << 8) |
                 bytes[offset + 3]
-          result = (result * 1_000_000_000) + val
+          result = (result * 1_000_000_000) + val.to_i
           offset += 4
         end
 

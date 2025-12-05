@@ -60,10 +60,11 @@ module MysqlReplicator
       @connection.close
     end
 
-    # @rbs return: String
+    # @rbs return: { file: String, position: Integer }
     def master_status
       result = @connection.query('SHOW MASTER STATUS')
-      result[:rows][0]
+      row = result[:rows][0]
+      { file: row[:file].to_s, position: row[:position].to_i }
     end
 
     # @rbs return: void

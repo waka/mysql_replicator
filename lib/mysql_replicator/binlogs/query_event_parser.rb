@@ -19,20 +19,20 @@ module MysqlReplicator
       def self.parse(payload, checksum_enabled)
         offset = 0
 
-        thread_id = payload[offset, 4].unpack('V')[0]
+        thread_id = MysqlReplicator::StringUtil.read_uint32(payload[offset, 4])
         offset += 4
 
-        exec_time = payload[offset, 4].unpack('V')[0]
+        exec_time = MysqlReplicator::StringUtil.read_uint32(payload[offset, 4])
         offset += 4
 
-        db_len = payload[offset].unpack('C')[0]
+        db_len = MysqlReplicator::StringUtil.read_uint8(payload[offset])
         offset += 1
 
-        error_code = payload[offset, 2].unpack('v')[0]
+        error_code = MysqlReplicator::StringUtil.read_uint16(payload[offset, 2])
         offset += 2
 
         # Skip status variables
-        status_vars_len = payload[offset, 2].unpack('v')[0]
+        status_vars_len = MysqlReplicator::StringUtil.read_uint16(payload[offset, 2])
         offset += 2
         if status_vars_len > 0
           offset += status_vars_len

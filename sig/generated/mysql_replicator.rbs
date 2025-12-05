@@ -10,7 +10,7 @@ module MysqlReplicator
   # @rbs return: void
   def self.run: (?host: String, ?port: Integer, ?user: String, ?password: String, ?database: String) ?{ (?) -> untyped } -> void
 
-  # @rbs custom_logger: Logger
+  # @rbs custom_logger: ::Logger
   # @rbs return: void
-  def self.logger=: (Logger custom_logger) -> void
+  def self.logger=: (::Logger custom_logger) -> void
 end

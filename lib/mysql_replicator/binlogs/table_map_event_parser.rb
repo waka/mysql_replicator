@@ -10,7 +10,7 @@ module MysqlReplicator
       #     data_type: String,
       #     column_name: String,
       #     column_type: String,
-      #     enum_values: Array[String | Integer],
+      #     enum_values: Array[String] | nil,
       #     nullable: bool,
       #     column_default: String | nil,
       #     numeric_precision: Integer,
@@ -37,23 +37,23 @@ module MysqlReplicator
         offset = 0
 
         # Table ID (6 bytes)
-        table_id = to_little_endian(payload[0, 6].unpack('C*'))
+        table_id = to_little_endian(MysqlReplicator::StringUtil.read_array_from_int8(payload[0, 6]))
         offset += 6
 
         # Flags (2 bytes)
-        flags = payload[offset, 2].unpack('v')[0]
+        flags = MysqlReplicator::StringUtil.read_uint16(payload[offset, 2])
         offset += 2
 
         # Database name length (1 byte) + database name + null terminator
-        db_name_len = payload[offset, 1].unpack('C')[0]
+        db_name_len = MysqlReplicator::StringUtil.read_uint8(payload[offset, 1])
         offset += 1
-        database_name = payload[offset, db_name_len]
+        database_name = MysqlReplicator::StringUtil.read_str(payload[offset, db_name_len])
         offset += db_name_len + 1 # +1 for null terminator
 
         # Table name length (1 byte) + table name + null terminator
-        table_name_len = payload[offset, 1].unpack('C')[0]
+        table_name_len = MysqlReplicator::StringUtil.read_uint8(payload[offset, 1])
         offset += 1
-        table_name = payload[offset, table_name_len]
+        table_name = MysqlReplicator::StringUtil.read_str(payload[offset, table_name_len])
 
         # Get actual column names from table schema
         columns = get_table_columns(connection, database_name, table_name)
@@ -111,20 +111,24 @@ module MysqlReplicator
         # Close the separated connection
         query_connection.close
 
+        if result.nil? || !result[:rows].is_a?(Array)
+          return []
+        end
+
         result[:rows].map do |row|
           {
-            ordinal_position: row[:ordinal_position],
-            data_type: row[:data_type],
-            column_name: row[:column_name],
-            column_type: row[:column_type],
-            enum_values: extract_enum_from_column_type(row[:data_type], row[:column_type]),
+            ordinal_position: row[:ordinal_position].to_i,
+            data_type: row[:data_type].to_s,
+            column_name: row[:column_name].to_s,
+            column_type: row[:column_type].to_s,
+            enum_values: extract_enum_from_column_type(row[:data_type].to_s, row[:column_type].to_s),
             nullable: row[:is_nullable] == 'YES',
             column_default: row[:column_default],
             numeric_precision: row[:numeric_precision].to_i,
             numeric_scale: row[:numeric_scale].to_i,
             character_maximum_length: row[:character_maximum_length].to_i,
-            character_set_name: row[:character_set_name],
-            collation_name: row[:collation_name],
+            character_set_name: row[:character_set_name].to_s,
+            collation_name: row[:collation_name].to_s,
             primary_key: row[:column_key] == 'PRI'
           }
         end
@@ -138,7 +142,7 @@ module MysqlReplicator
 
         # Extract values from ENUM('value1','value2','value3')
         if column_type =~ /enum\((.*)\)/i
-          enum_string = ::Regexp.last_match(1)
+          enum_string = ::Regexp.last_match(1) || ''
           # Extract value by arround single quote
           values = enum_string.scan(/'([^']*)'/).flatten
           return values

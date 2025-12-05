@@ -4,8 +4,8 @@ module MysqlReplicator
   class Logger
     self.@logger: ::Logger
 
-    # @rbs! attr_writer logger: ::Logger
-    attr_writer logger: untyped
+    # @rbs logger: ::Logger
+    def self.logger=: (::Logger logger) -> untyped
 
     # @rbs message: String
     # @rbs return: void

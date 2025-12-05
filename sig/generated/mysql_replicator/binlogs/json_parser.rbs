@@ -1,0 +1,101 @@
+# Generated from lib/mysql_replicator/binlogs/json_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class JsonParser
+      type jsonValue = String | Integer | Float | bool | nil
+
+      type json = Hash[Symbol, json] | Array[json] | jsonValue
+
+      JSONB_TYPE_SMALL_OBJECT: Integer
+
+      JSONB_TYPE_LARGE_OBJECT: Integer
+
+      JSONB_TYPE_SMALL_ARRAY: Integer
+
+      JSONB_TYPE_LARGE_ARRAY: Integer
+
+      JSONB_TYPE_LITERAL: Integer
+
+      JSONB_TYPE_INT16: Integer
+
+      JSONB_TYPE_UINT16: Integer
+
+      JSONB_TYPE_INT32: Integer
+
+      JSONB_TYPE_UINT32: Integer
+
+      JSONB_TYPE_INT64: Integer
+
+      JSONB_TYPE_UINT64: Integer
+
+      JSONB_TYPE_DOUBLE: Integer
+
+      JSONB_TYPE_STRING: Integer
+
+      JSONB_TYPE_OPAQUE: Integer
+
+      JSONB_NULL: Integer
+
+      JSONB_TRUE: Integer
+
+      JSONB_FALSE: Integer
+
+      # @rbs payload: String | nil
+      # @rbs return: json
+      def self.parse: (String | nil payload) -> json
+
+      # @rbs type: Integer
+      # @rbs data: String
+      # @rbs pos: Integer
+      # @rbs return: json
+      def self.parse_value: (Integer type, String data, Integer pos) -> json
+
+      # @rbs type: Integer
+      # @rbs data: String
+      # @rbs offset: Integer
+      # @rbs base_offset: Integer
+      # @rbs return: json
+      def self.parse_value_at_offset: (Integer type, String data, Integer offset, Integer base_offset) -> json
+
+      # SMALL: under 65535 elements, and 2byte offsets
+      # LARGE: 65535 elements or more, and 4byte offsets
+      #
+      # @rbs data: String
+      # @rbs pos: Integer
+      # @rbs small: bool
+      # @rbs return: Hash[Symbol, json]
+      def self.parse_object: (String data, Integer pos, small: bool) -> Hash[Symbol, json]
+
+      # @rbs data: String
+      # @rbs pos: Integer
+      # @rbs small: bool
+      # @rbs return: Array[json]
+      def self.parse_array: (String data, Integer pos, small: bool) -> Array[json]
+
+      # @rbs literal_type: Integer
+      # @rbs return: bool | nil
+      def self.parse_literal: (Integer literal_type) -> (bool | nil)
+
+      # @rbs data: String
+      # @rbs pos: Integer
+      # @rbs return: String
+      def self.parse_string: (String data, Integer pos) -> String
+
+      # @rbs type: Integer
+      # @rbs small: bool
+      # @rbs return: bool
+      def self.inlined_type?: (Integer type, bool small) -> bool
+
+      # @rbs data: String
+      # @rbs pos: Integer
+      # @rbs return: Integer | bool | nil
+      def self.read_inlined_value: (String data, Integer pos, untyped type) -> (Integer | bool | nil)
+
+      # @rbs data: String
+      # @rbs pos: Integer
+      # @rbs return: [Integer, Integer]
+      def self.read_variable_length: (String data, Integer pos) -> [ Integer, Integer ]
+    end
+  end
+end

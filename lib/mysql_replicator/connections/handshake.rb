@@ -6,13 +6,13 @@ module MysqlReplicator
     class Handshake
       # @rbs!
       #   type handshake = {
-      #     protocol_version: String,
-      #     server_version: String | nil,
+      #     protocol_version: Integer,
+      #     server_version: String,
       #     connection_id: Integer,
-      #     capability_flags: Integer,
-      #     charset: String,
-      #     status_flags: Integer,
-      #     auth_plugin_name: String | nil,
+      #     capability_flags: Integer | nil,
+      #     charset: Integer | nil,
+      #     status_flags: Integer | nil,
+      #     auth_plugin_name: String,
       #     auth_plugin_data: String
       #   }
 
@@ -33,48 +33,48 @@ module MysqlReplicator
         offset = 0
 
         # Protocol version (1 byte)
-        protocol_version = payload[offset].unpack('C')[0]
+        protocol_version = MysqlReplicator::StringUtil.read_uint8(payload[offset])
         offset += 1
 
         # Server version is null-terminated string
-        server_version_end = payload.index("\0", offset)
-        server_version = payload[offset...server_version_end]
+        server_version_end = payload.index("\0", offset) || 0
+        server_version = MysqlReplicator::StringUtil.read_str(payload[offset...server_version_end])
         offset = server_version_end + 1
 
         # ConnectionID is 4bytes and little endian
-        connection_id = payload[offset..(offset + 3)].unpack('V')[0]
+        connection_id = MysqlReplicator::StringUtil.read_uint32(payload[offset..(offset + 3)])
         offset += 4
 
         # Authentication plugin data (first 8 bytes)
-        auth_plugin_data_part1 = payload[offset..(offset + 7)]
+        auth_plugin_data_part1 = MysqlReplicator::StringUtil.read_str(payload[offset..(offset + 7)])
         offset += 8
 
         # Reserved (1 byte, always 0x00)
         offset += 1
 
         # Server capability flags (lower 2 bytes)
-        capability_flags_lower = payload[offset..(offset + 1)].unpack('v')[0]
+        capability_flags_lower = MysqlReplicator::StringUtil.read_uint16(payload[offset..(offset + 1)])
         offset += 2
 
         # After MySQL 8.0, additional authentication plugin information is included
         if offset < payload.length
           # Character set (1 byte)
-          charset = payload[offset].unpack('C')[0]
+          charset = MysqlReplicator::StringUtil.read_uint8(payload[offset])
           offset += 1
 
           # Status flags (2 bytes)
-          status_flags = payload[offset..(offset + 1)].unpack('v')[0]
+          status_flags = MysqlReplicator::StringUtil.read_uint16(payload[offset..(offset + 1)])
           offset += 2
 
           # Server capability flags (upper 2 bytes)
-          capability_flags_upper = payload[offset..(offset + 1)].unpack('v')[0]
+          capability_flags_upper = MysqlReplicator::StringUtil.read_uint16(payload[offset..(offset + 1)])
           offset += 2
 
           # Feature flags
           capability_flags = capability_flags_lower | (capability_flags_upper << 16)
 
           # Authentication plugin data length (1 byte)
-          auth_plugin_data_len = payload[offset].unpack('C')[0]
+          auth_plugin_data_len = MysqlReplicator::StringUtil.read_uint8(payload[offset])
           offset += 1
 
           # Reserved (10 bytes)
@@ -82,16 +82,16 @@ module MysqlReplicator
 
           # Authentication plugin data (part 2)
           remaining_auth_data_len = [auth_plugin_data_len - 8, 13].max
-          auth_plugin_data_part2 = payload[offset..(offset + remaining_auth_data_len - 1)]
+          auth_plugin_data_part2 = MysqlReplicator::StringUtil.read_str(payload[offset..(offset + remaining_auth_data_len - 1)])
           offset += remaining_auth_data_len
 
           # Authentication plugin name (null-terminated string)
           plugin_name_end = payload.index("\0", offset)
-          auth_plugin_name = payload[offset...plugin_name_end]
-          auth_plugin_data = auth_plugin_data_part1 + auth_plugin_data_part2[0..11]
+          auth_plugin_name = MysqlReplicator::StringUtil.read_str(payload[offset...plugin_name_end])
+          auth_plugin_data = auth_plugin_data_part1 + MysqlReplicator::StringUtil.read_str(auth_plugin_data_part2[0..11])
           # Adjust 20 bytes
           if auth_plugin_data.length > 20
-            auth_plugin_data = auth_plugin_data[0..19]
+            auth_plugin_data = auth_plugin_data[0..19] || ''
           elsif auth_plugin_data.length < 20
             auth_plugin_data += "\x00" * (20 - auth_plugin_data.length)
           end
@@ -120,7 +120,7 @@ module MysqlReplicator
           "Protocol version: #{handshake_info[:protocol_version]}\n" \
           "Server version: #{handshake_info[:server_version]}\n" \
           "Connection ID: #{handshake_info[:connection_id]}\n" \
-          "Capability flags: 0x#{handshake_info[:capability_flags].to_s(16).upcase}\n" \
+          "Capability flags: 0x#{handshake_info[:capability_flags]&.to_s(16)&.upcase}\n" \
           "Character set: #{handshake_info[:charset]}\n" \
           "Status flags: #{handshake_info[:status_flags]}\n" \
           "Authentication plugin name: #{handshake_info[:auth_plugin_name]}\n" \

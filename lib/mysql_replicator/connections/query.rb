@@ -5,6 +5,19 @@ module MysqlReplicator
   module Connections
     class Query
       # @rbs!
+      #   type columnData = {
+      #     catalog: String,
+      #     schema: String,
+      #     table: String,
+      #     org_table: String,
+      #     name: String,
+      #     org_name: String,
+      #     charset: Integer,
+      #     column_length: Integer,
+      #     type: String
+      #   }
+
+      # @rbs!
       #   type queryResultOk = {
       #     affected_rows: Integer | nil,
       #     insert_id: Integer | nil,
@@ -23,17 +36,8 @@ module MysqlReplicator
 
       # @rbs!
       #   type queryResultSet = {
-      #     columns: Array[{
-      #       catalog: String,
-      #       schema: String,
-      #       table: String,
-      #       org_table: String,
-      #       name: String,
-      #       charset: String,
-      #       column_length: Integer,
-      #       type: String
-      #     }],
-      #     rows: Array[Hash[Symbol, String]],
+      #     columns: Array[columnData],
+      #     rows: Array[Hash[Symbol, String | nil]],
       #     row_count: Integer
       #   }
 
@@ -48,7 +52,7 @@ module MysqlReplicator
         connection.send_packet(query_payload)
 
         response = connection.read_packet
-        case response[:payload][0].unpack('C')[0]
+        case MysqlReplicator::StringUtil.read_uint8(response[:payload][0])
         when 0x00 # OK
           parse_ok(response[:payload])
         when 0xFF # Error
@@ -73,7 +77,7 @@ module MysqlReplicator
 
         # status_flags (2 bytes)
         if payload.length > offset + 1
-          status_flags = payload[offset..(offset + 1)].unpack('v')[0]
+          status_flags = MysqlReplicator::StringUtil.read_uint16(payload[offset..(offset + 1)])
           offset += 2
         else
           status_flags = nil
@@ -81,7 +85,7 @@ module MysqlReplicator
 
         # warnings (2 bytes)
         if payload.length > offset + 3
-          warnings = payload[(offset + 2)..(offset + 3)].unpack('v')[0]
+          warnings = MysqlReplicator::StringUtil.read_uint16(payload[(offset + 2)..(offset + 3)])
           offset += 2
         else
           warnings = nil
@@ -102,10 +106,10 @@ module MysqlReplicator
       # @rbs payload: String
       # @rbs return: queryResultError
       def self.parse_error(payload)
-        error_code = payload[1..2].unpack('v')[0]
-        sql_state_marker = payload[3].chr
-        sql_state = payload[4..8]
-        error_message = payload[9..]
+        error_code = MysqlReplicator::StringUtil.read_uint16(payload[1..2])
+        sql_state_marker = (payload[3] || '').chr
+        sql_state = payload[4..8] || nil
+        error_message = payload[9..] || nil
 
         {
           error_code: error_code,
@@ -121,7 +125,7 @@ module MysqlReplicator
       def self.parse_result_set(connection, payload)
         # Read columns definition
         columns = []
-        column_count = length_encoded_integer(payload, 0)[:value]
+        column_count = length_encoded_integer(payload, 0)[:value].to_i
         column_count.times do
           column_packet = connection.read_packet
           column_info = parse_column_definition(column_packet[:payload])
@@ -131,12 +135,13 @@ module MysqlReplicator
         # EOF packet（at finish）
         connection.read_packet
 
-        rows = []
+        rows = [] #: Array[Hash[Symbol, String | nil]]
+
         loop do
           row_packet = connection.read_packet
 
           # Check EOF packet
-          if row_packet[:payload][0].unpack('C')[0] == 0xFE
+          if MysqlReplicator::StringUtil.read_uint8(row_packet[:payload][0]) == 0xFE
             break
           end
 
@@ -148,16 +153,7 @@ module MysqlReplicator
       end
 
       # @rbs payload: String
-      # @rbs return: {
-      #   catalog: String,
-      #   schema: String,
-      #   table: String,
-      #   org_table: String,
-      #   name: String,
-      #   charset: String,
-      #   column_length: Integer,
-      #   type: String
-      # }
+      # @rbs return: columnData
       def self.parse_column_definition(payload)
         offset = 0
 
@@ -189,15 +185,15 @@ module MysqlReplicator
         offset += 1
 
         # character set (2 bytes)
-        charset = payload[offset..(offset + 1)].unpack('v')[0]
+        charset = MysqlReplicator::StringUtil.read_uint16(payload[offset..(offset + 1)])
         offset += 2
 
         # column length (4 bytes)
-        column_length = payload[offset..(offset + 3)].unpack('V')[0]
+        column_length = MysqlReplicator::StringUtil.read_uint32(payload[offset..(offset + 3)])
         offset += 4
 
         # type (1 byte)
-        type = payload[offset].unpack('C')[0]
+        type = MysqlReplicator::StringUtil.read_uint8(payload[offset])
 
         {
           catalog: catalog[:value],
@@ -213,21 +209,12 @@ module MysqlReplicator
       end
 
       # @rbs payload: String
-      # @rbs columns: Array[{
-      #   catalog: String,
-      #   schema: String,
-      #   table: String,
-      #   org_table: String,
-      #   name: String,
-      #   charset: String,
-      #   column_length: Integer,
-      #   type: String
-      # }]
-      # @rbs return: Hash[Symbol, String]
+      # @rbs columns: Array[columnData]
+      # @rbs return: Hash[Symbol, String | nil]
       def self.parse_row_data(payload, columns)
-        first_byte = payload[0].unpack('C')[0]
+        first_byte = MysqlReplicator::StringUtil.read_uint8(payload[0])
 
-        row = {}
+        row = {} #: Hash[Symbol, String | nil]
         offset = 0
 
         columns.each do |column|
@@ -255,28 +242,28 @@ module MysqlReplicator
 
       # @rbs payload: String
       # @rbs offset: Integer
-      # @rbs return: { value: Integer?, bytes_read: Integer }
+      # @rbs return: { value: Integer | nil, bytes_read: Integer }
       def self.length_encoded_integer(payload, offset)
-        first_byte = payload[offset].unpack('C')[0]
+        first_byte = MysqlReplicator::StringUtil.read_uint8(payload[offset])
 
         case first_byte
         when 0..250
           { value: first_byte, bytes_read: 1 }
         when 0xFC
-          value = payload[(offset + 1)..(offset + 2)].unpack('v')[0]
+          value = MysqlReplicator::StringUtil.read_uint16(payload[(offset + 1)..(offset + 2)])
           { value: value, bytes_read: 3 }
         when 0xFD
-          value = payload[(offset + 1)..(offset + 3)].unpack('V')[0] & 0xFFFFFF
+          value = MysqlReplicator::StringUtil.read_uint32(payload[(offset + 1)..(offset + 3)]) & 0xFFFFFF
           { value: value, bytes_read: 4 }
         when 0xFE
-          value = payload[(offset + 1)..(offset + 8)].unpack('Q<')[0]
+          value = MysqlReplicator::StringUtil.read_uint64(payload[(offset + 1)..(offset + 8)])
           { value: value, bytes_read: 9 }
         else # Included 0xFB
           { value: nil, bytes_read: 1 }
         end
       end
 
-      # @rbs value: Integer
+      # @rbs value: Integer | nil
       # @rbs return: Integer
       def self.length_encoded_integer_size(value)
         return 1 if value.nil?
@@ -289,14 +276,14 @@ module MysqlReplicator
 
       # @rbs payload: String
       # @rbs offset: Integer
-      # @rbs return { value: String?, bytes_read: Integer }
+      # @rbs return { value: String, bytes_read: Integer }
       def self.length_encoded_string(payload, offset)
         length_info = length_encoded_integer(payload, offset)
-        return { value: nil, bytes_read: length_info[:bytes_read] } if length_info[:value].nil?
+        return { value: '', bytes_read: length_info[:bytes_read] } if length_info[:value].nil?
 
         string_start = offset + length_info[:bytes_read]
         string_end = string_start + length_info[:value] - 1
-        value = payload[string_start..string_end]
+        value = payload[string_start..string_end] || ''
 
         {
           value: value,
@@ -304,7 +291,7 @@ module MysqlReplicator
         }
       end
 
-      # @rbs type: Integer
+      # @rbs type: Integer | Float | String | nil
       # @rbs return: String
       def self.type_to_string(type)
         case type

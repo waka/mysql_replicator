@@ -3,11 +3,13 @@
 module MysqlReplicator
   module Connections
     class Query
+      type columnData = { catalog: String, schema: String, table: String, org_table: String, name: String, org_name: String, charset: Integer, column_length: Integer, type: String }
+
       type queryResultOk = { affected_rows: Integer | nil, insert_id: Integer | nil, status_flags: Integer | nil, warnings: Integer | nil, info_message: String | nil }
 
       type queryResultError = { error_code: Integer, sql_state_marker: String, sql_state: String | nil, error_message: String | nil }
 
-      type queryResultSet = { columns: Array[{ catalog: String, schema: String, table: String, org_table: String, name: String, charset: String, column_length: Integer, type: String }], rows: Array[Hash[Symbol, String]], row_count: Integer }
+      type queryResultSet = { columns: Array[columnData], rows: Array[Hash[Symbol, String | nil]], row_count: Integer }
 
       type queryResult = queryResultOk | queryResultError | queryResultSet
 
@@ -30,49 +32,31 @@ module MysqlReplicator
       def self.parse_result_set: (MysqlReplicator::Connection connection, String payload) -> queryResultSet
 
       # @rbs payload: String
-      # @rbs return: {
-      #   catalog: String,
-      #   schema: String,
-      #   table: String,
-      #   org_table: String,
-      #   name: String,
-      #   charset: String,
-      #   column_length: Integer,
-      #   type: String
-      # }
-      def self.parse_column_definition: (String payload) -> untyped
+      # @rbs return: columnData
+      def self.parse_column_definition: (String payload) -> columnData
 
       # @rbs payload: String
-      # @rbs columns: Array[{
-      #   catalog: String,
-      #   schema: String,
-      #   table: String,
-      #   org_table: String,
-      #   name: String,
-      #   charset: String,
-      #   column_length: Integer,
-      #   type: String
-      # }]
-      # @rbs return: Hash[Symbol, String]
-      def self.parse_row_data: (String payload, untyped columns) -> Hash[Symbol, String]
+      # @rbs columns: Array[columnData]
+      # @rbs return: Hash[Symbol, String | nil]
+      def self.parse_row_data: (String payload, Array[columnData] columns) -> Hash[Symbol, String | nil]
 
       # @rbs payload: String
       # @rbs offset: Integer
-      # @rbs return: { value: Integer?, bytes_read: Integer }
-      def self.length_encoded_integer: (String payload, Integer offset) -> { value: Integer?, bytes_read: Integer }
+      # @rbs return: { value: Integer | nil, bytes_read: Integer }
+      def self.length_encoded_integer: (String payload, Integer offset) -> { value: Integer | nil, bytes_read: Integer }
 
-      # @rbs value: Integer
+      # @rbs value: Integer | nil
       # @rbs return: Integer
-      def self.length_encoded_integer_size: (Integer value) -> Integer
+      def self.length_encoded_integer_size: (Integer | nil value) -> Integer
 
       # @rbs payload: String
       # @rbs offset: Integer
-      # @rbs return { value: String?, bytes_read: Integer }
-      def self.length_encoded_string: (String payload, Integer offset) -> { value: String?, bytes_read: Integer }
+      # @rbs return { value: String, bytes_read: Integer }
+      def self.length_encoded_string: (String payload, Integer offset) -> { value: String, bytes_read: Integer }
 
-      # @rbs type: Integer
+      # @rbs type: Integer | Float | String | nil
       # @rbs return: String
-      def self.type_to_string: (Integer type) -> String
+      def self.type_to_string: (Integer | Float | String | nil type) -> String
     end
   end
 end

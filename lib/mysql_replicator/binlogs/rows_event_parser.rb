@@ -51,9 +51,9 @@ module MysqlReplicator
         # Columns present bitmap
         bitmap_size = (column_count + 7) / 8
         # A bitmap indicating which columns are present in the row data
-        columns_present_bitmap = io.read(bitmap_size).unpack('C*')
+        columns_present_bitmap = MysqlReplicator::StringIOUtil.read_array_from_int8(io, bitmap_size)
         # if UPDATE_ROWS event, after this bitmap, there is another bitmap for "columns present in the after image"
-        columns_after_bitmap = event_type == :UPDATE_ROWS ? io.read(bitmap_size).unpack('C*') : nil
+        columns_after_bitmap = event_type == :UPDATE_ROWS ? MysqlReplicator::StringIOUtil.read_array_from_int8(io, bitmap_size) : []
 
         # Parse row data
         table_def = table_map[table_id]
@@ -88,7 +88,7 @@ module MysqlReplicator
         # A bitmap indicating which columns are NULL
         present_count = count_bits(columns_present_bitmap, column_count)
         null_bitmap_size = (present_count + 7) / 8
-        null_bitmap = io.read(null_bitmap_size).unpack('C*')
+        null_bitmap = MysqlReplicator::StringIOUtil.read_array_from_int8(io, null_bitmap_size)
         null_bit_index = 0
 
         row = []

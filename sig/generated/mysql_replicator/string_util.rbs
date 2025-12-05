@@ -1,0 +1,45 @@
+# Generated from lib/mysql_replicator/string_util.rb with RBS::Inline
+
+module MysqlReplicator
+  class StringUtil
+    # @rbs payload: String | nil
+    # @rbs return: String
+    def self.read_str: (String | nil payload) -> String
+
+    # @rbs payload: String | nil
+    # @rbs return: Integer
+    def self.read_uint8: (String | nil payload) -> Integer
+
+    # @rbs payload: String | nil
+    # @rbs return: Integer
+    def self.read_uint16: (String | nil payload) -> Integer
+
+    # @rbs payload: String | nil
+    # @rbs return: Integer
+    def self.read_int16: (String | nil payload) -> Integer
+
+    # @rbs payload: String | nil
+    # @rbs return: Integer
+    def self.read_uint32: (String | nil payload) -> Integer
+
+    # @rbs payload: String | nil
+    # @rbs return: Integer
+    def self.read_int32: (String | nil payload) -> Integer
+
+    # @rbs payload: String | nil
+    # @rbs return: Integer
+    def self.read_uint64: (String | nil payload) -> Integer
+
+    # @rbs paylaod: String | nil
+    # @rbs return: Integer
+    def self.read_int64: (untyped payload) -> Integer
+
+    # @rbs paylaod: String | nil
+    # @rbs return: Float
+    def self.read_double64: (untyped payload) -> Float
+
+    # @rbs payload: String | nil
+    # @rbs return: Array[Integer]
+    def self.read_array_from_int8: (String | nil payload) -> Array[Integer]
+  end
+end

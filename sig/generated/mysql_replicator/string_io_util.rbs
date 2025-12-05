@@ -3,6 +3,10 @@
 module MysqlReplicator
   class StringIOUtil
     # @rbs io: StringIO
+    # @rbs return: String
+    def self.read_str: (StringIO io, untyped length) -> String
+
+    # @rbs io: StringIO
     # @rbs return: Integer
     def self.read_packed_integer: (StringIO io) -> Integer
 
@@ -40,6 +44,10 @@ module MysqlReplicator
 
     # @rbs io: StringIO
     # @rbs return: Integer
+    def self.read_uint32_big_endian: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Integer
     def self.read_int48: (StringIO io) -> Integer
 
     # @rbs io: StringIO
@@ -53,5 +61,15 @@ module MysqlReplicator
     # @rbs io: StringIO
     # @rbs return: Integer
     def self.read_uint64: (StringIO io) -> Integer
+
+    # @rbs io: StringIO
+    # @rbs return: Float
+    def self.read_float32: (StringIO io) -> Float
+
+    # @rbs io: StringIO
+    # @rbs return: Float
+    def self.read_double64: (StringIO io) -> Float
+
+    def self.read_array_from_int8: (untyped io, untyped length) -> untyped
   end
 end

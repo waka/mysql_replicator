@@ -4,9 +4,9 @@ module MysqlReplicator
   class Connection
     type packet = { length: Integer, sequence_id: Integer, payload: String }
 
-    @handshake_info: MysqlReplicator::Connections::Handshake::handshake?
+    @handshake_info: MysqlReplicator::Connections::Handshake::handshake
 
-    @socket: TCPSocket?
+    @socket: TCPSocket
 
     @connected: bool
 
@@ -75,8 +75,8 @@ module MysqlReplicator
     def connect: () -> untyped
 
     # @rbs sql: String
-    # @rbs return: MysqlReplicator::Types::queryResult | nil
-    def query: (String sql) -> (MysqlReplicator::Types::queryResult | nil)
+    # @rbs return: MysqlReplicator::Connections::Query::queryResult | nil
+    def query: (String sql) -> (MysqlReplicator::Connections::Query::queryResult | nil)
 
     # @rbs return: 'PONG' | 'ERROR'
     def ping: () -> ("PONG" | "ERROR")
@@ -94,8 +94,8 @@ module MysqlReplicator
     # @rbs return: void
     def flush_socket_buffer: () -> void
 
-    # @rbs return: String
-    def connection_id: () -> String
+    # @rbs return: Integer
+    def connection_id: () -> Integer
 
     # @rbs return: MysqlReplicator::Connection
     def dup: () -> MysqlReplicator::Connection

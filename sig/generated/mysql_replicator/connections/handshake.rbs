@@ -3,7 +3,7 @@
 module MysqlReplicator
   module Connections
     class Handshake
-      type handshake = { protocol_version: String, server_version: String | nil, connection_id: Integer, capability_flags: Integer, charset: String, status_flags: Integer, auth_plugin_name: String | nil, auth_plugin_data: String }
+      type handshake = { protocol_version: Integer, server_version: String, connection_id: Integer, capability_flags: Integer | nil, charset: Integer | nil, status_flags: Integer | nil, auth_plugin_name: String, auth_plugin_data: String }
 
       # @rbs connection: MysqlReplicator::Connection
       # @rbs return: handshake

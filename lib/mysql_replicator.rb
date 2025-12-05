@@ -18,6 +18,7 @@ require_relative 'mysql_replicator/connections/handshake'
 require_relative 'mysql_replicator/connections/query'
 require_relative 'mysql_replicator/error'
 require_relative 'mysql_replicator/logger'
+require_relative 'mysql_replicator/string_util'
 require_relative 'mysql_replicator/string_io_util'
 require_relative 'mysql_replicator/version'
 
@@ -42,7 +43,7 @@ module MysqlReplicator
     client.start_replication
   end
 
-  # @rbs custom_logger: Logger
+  # @rbs custom_logger: ::Logger
   # @rbs return: void
   def self.logger=(custom_logger)
     MysqlReplicator::Logger.logger = custom_logger

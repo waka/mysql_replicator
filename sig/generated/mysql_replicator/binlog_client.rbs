@@ -27,8 +27,8 @@ module MysqlReplicator
     # @rbs return: void
     def stop_replication: () -> void
 
-    # @rbs return: String
-    def master_status: () -> String
+    # @rbs return: { file: String, position: Integer }
+    def master_status: () -> { file: String, position: Integer }
 
     # @rbs return: void
     def register_as_slave: () -> void

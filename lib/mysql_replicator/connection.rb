@@ -19,8 +19,8 @@ module MysqlReplicator
     # @rbs @database: String
     # @rbs @sequence_id: Integer
     # @rbs @connected: bool
-    # @rbs @socket: TCPSocket?
-    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake?
+    # @rbs @socket: TCPSocket
+    # @rbs @handshake_info: MysqlReplicator::Connections::Handshake::handshake
 
     # @rbs! attr_reader host: String
     # @rbs! attr_reader port: Integer
@@ -79,7 +79,7 @@ module MysqlReplicator
     end
 
     # @rbs sql: String
-    # @rbs return: MysqlReplicator::Types::queryResult | nil
+    # @rbs return: MysqlReplicator::Connections::Query::queryResult | nil
     def query(sql)
       unless @connected
         MysqlReplicator::Logger.warn 'Connection is not connected'
@@ -105,7 +105,7 @@ module MysqlReplicator
       send_packet(ping_payload)
 
       response = read_packet
-      success = response[:payload][0].unpack('C')[0] == 0x00
+      success = MysqlReplicator::StringUtil.read_uint8(response[:payload][0]) == 0x00
       success ? 'PONG' : 'ERROR'
     end
 
@@ -140,10 +140,10 @@ module MysqlReplicator
       end
 
       # Little-endian 24-bit
-      packet_length = header[0].unpack('C')[0] |
-                      (header[1].unpack('C')[0] << 8) |
-                      (header[2].unpack('C')[0] << 16)
-      sequence_id = header[3].unpack('C')[0]
+      packet_length = MysqlReplicator::StringUtil.read_uint8(header[0]) |
+                      (MysqlReplicator::StringUtil.read_uint8(header[1]) << 8) |
+                      (MysqlReplicator::StringUtil.read_uint64(header[2]) << 16)
+      sequence_id = MysqlReplicator::StringUtil.read_uint64(header[3])
 
       payload = @socket.read(packet_length)
       if payload.nil? || payload.length != packet_length
@@ -168,7 +168,7 @@ module MysqlReplicator
     # @rbs return: void
     def send_packet(payload)
       packet_length = payload.length
-      header = [packet_length].pack('V')[0..2] + [@sequence_id].pack('C')
+      header = ([packet_length].pack('V')[0..2] || '') + [@sequence_id].pack('C').to_s
       @socket.write(header + payload)
 
       packet = { length: packet_length, sequence_id: @sequence_id, payload: payload }
@@ -177,6 +177,8 @@ module MysqlReplicator
 
     # @rbs return: void
     def flush_socket_buffer
+      return if @socket.nil?
+
       flushed_data = ''
 
       begin
@@ -200,7 +202,7 @@ module MysqlReplicator
       MysqlReplicator::Logger.debug "#{flushed_data.length} bytes of unread data cleared"
     end
 
-    # @rbs return: String
+    # @rbs return: Integer
     def connection_id
       @handshake_info[:connection_id]
     end

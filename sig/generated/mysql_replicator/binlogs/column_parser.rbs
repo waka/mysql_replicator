@@ -1,0 +1,134 @@
+# Generated from lib/mysql_replicator/binlogs/column_parser.rb with RBS::Inline
+
+module MysqlReplicator
+  module Binlogs
+    class ColumnParser
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      def self.parse: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> untyped
+
+      # @rbs io: StringIO
+      # @rbs return: Integer
+      def self.parse_tinyint: (StringIO io) -> Integer
+
+      # @rbs io: StringIO
+      # @rbs return: Integer
+      def self.parse_smallint: (StringIO io) -> Integer
+
+      # @rbs io: StringIO
+      # @rbs return: Integer
+      def self.parse_mediumint: (StringIO io) -> Integer
+
+      # @rbs io: StringIO
+      # @rbs return: Integer
+      def self.parse_int: (StringIO io) -> Integer
+
+      # @rbs io: StringIO
+      # @rbs return: Integer
+      def self.parse_bigint: (StringIO io) -> Integer
+
+      # @rbs io: StringIO
+      # @rbs return: Float
+      def self.parse_float: (StringIO io) -> Float
+
+      # @rbs io: StringIO
+      # @rbs return: Float
+      def self.parse_double: (StringIO io) -> Float
+
+      # This is sensitive...
+      #
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: BigDecimal
+      def self.parse_decimal: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> BigDecimal
+
+      # @rbs io: StringIO
+      # @return: String
+      def self.parse_datetime: (StringIO io) -> untyped
+
+      # @rbs io: StringIO
+      # @return: String
+      def self.parse_date: (StringIO io) -> untyped
+
+      # @rbs io: StringIO
+      # @return: String
+      def self.parse_time: (StringIO io) -> untyped
+
+      # @rbs io: StringIO
+      # @return: Integer
+      def self.parse_timestamp: (StringIO io) -> untyped
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_varchar: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_char: (untyped io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_tinytext: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_text: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_mediumtext: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_longtext: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs io: StringIO
+      # @rbs return: String
+      def self.parse_tinyblob: (StringIO io) -> String
+
+      # @rbs io: StringIO
+      # @rbs return: String
+      def self.parse_blob: (StringIO io) -> String
+
+      # @rbs io: StringIO
+      # @rbs return: String
+      def self.parse_mediumblob: (StringIO io) -> String
+
+      # @rbs io: StringIO
+      # @rbs return: String
+      def self.parse_longblob: (StringIO io) -> String
+
+      # @rbs io: StringIO
+      # @rbs return: String
+      def self.parse_varbinary: (StringIO io, untyped column_def) -> String
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String
+      def self.parse_binary: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> String
+
+      # @rbs io: StringIO
+      # @return Hash[Symbol, String | Integer | bool | nil]
+      def self.parse_json: (StringIO io) -> untyped
+
+      # @rbs io: StringIO
+      # @rbs column_def: MysqlReplicator::Binlogs::TableMapEventParser::columnData
+      # @rbs return: String | Integer
+      def self.parse_enum: (StringIO io, MysqlReplicator::Binlogs::TableMapEventParser::columnData column_def) -> (String | Integer)
+
+      # @rbs digits: Integer
+      # @rbs return: Integer
+      def self.decimal_storage_bytes: (Integer digits) -> Integer
+
+      # @rbs bytes: Array[Integer]
+      # @rbs digits: Integer
+      # @rbs return: Integer
+      def self.parse_decimal_digits: (Array[Integer] bytes, Integer digits) -> Integer
+    end
+  end
+end

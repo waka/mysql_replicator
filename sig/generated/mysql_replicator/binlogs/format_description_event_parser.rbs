@@ -3,7 +3,7 @@
 module MysqlReplicator
   module Binlogs
     class FormatDescriptionEventParser
-      type execution = { binlog_version: String, server_version: String }
+      type execution = { binlog_version: Integer, server_version: String }
 
       # @rbs payload: String
       # @rbs return: execution

@@ -39,8 +39,8 @@ module MysqlReplicator
       # @rbs password: String
       # @rbs database: String
       # @rbs handshake_info: MysqlReplicator::Connections::Handshake::handshake
-      # @rbs return: void
-      def self.build_caching_sha2_password_payload: (String user, String password, String database, MysqlReplicator::Connections::Handshake::handshake handshake_info) -> void
+      # @rbs return: String
+      def self.build_caching_sha2_password_payload: (String user, String password, String database, MysqlReplicator::Connections::Handshake::handshake handshake_info) -> String
 
       # Hash value for caching_sha2_password
       # SHA256(password) XOR SHA256(SHA256(SHA256(password)) + salt)
@@ -70,7 +70,7 @@ module MysqlReplicator
       # @rbs password: String
       # @rbs salt: String
       # @rbs return: String
-      def build_mysql_native_password_payload: (String password, String salt) -> String
+      def self.build_mysql_native_password_payload: (String password, String salt) -> String
     end
   end
 end

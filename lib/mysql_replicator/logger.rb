@@ -9,10 +9,12 @@ module MysqlReplicator
     @logger = ::Logger.new($stdout)
     @logger.level = ENV.fetch('MYSQL_REPLICATOR_LOG_LEVEL', ::Logger::INFO)
 
-    class << self
-      # @rbs! attr_writer logger: ::Logger
-      attr_writer :logger
+    # @rbs logger: ::Logger
+    def self.logger=(logger) # rubocop:disable Style/TrivialAccessors
+      @logger = logger
+    end
 
+    class << self
       # @rbs message: String
       # @rbs return: void
       def debug(message)

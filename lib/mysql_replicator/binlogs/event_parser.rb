@@ -39,24 +39,24 @@ module MysqlReplicator
       def execute(payload, connection, checksum_enabled)
         offset = 0
 
-        timestamp = Time.at(payload[offset, 4].unpack('V')[0])
+        timestamp = Time.at(MysqlReplicator::StringUtil.read_uint32(payload[offset, 4]))
         offset += 4
-        event_type = readable_event_type(payload[offset].unpack('C')[0])
+        event_type = readable_event_type(MysqlReplicator::StringUtil.read_uint8(payload[offset]))
         offset += 1
-        server_id = payload[offset, 4].unpack('V')[0]
+        server_id = MysqlReplicator::StringUtil.read_uint32(payload[offset, 4])
         offset += 4
-        event_length = payload[offset, 4].unpack('V')[0]
+        event_length = MysqlReplicator::StringUtil.read_uint32(payload[offset, 4])
         offset += 4
-        next_position = payload[offset, 4].unpack('V')[0]
+        next_position = MysqlReplicator::StringUtil.read_uint32(payload[offset, 4])
         offset += 4
-        flags = payload[offset, 2].unpack('v')[0]
+        flags = MysqlReplicator::StringUtil.read_uint16(payload[offset, 2])
         offset += 2
 
         payload_length = event_length - offset
 
         execution = parse_execution_data(
           event_type,
-          payload[offset, payload_length],
+          MysqlReplicator::StringUtil.read_str(payload[offset, payload_length]),
           connection,
           checksum_enabled
         )
