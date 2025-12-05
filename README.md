@@ -89,7 +89,7 @@ MysqlReplicator.run(
 | HEARTBEAT_LOG_EVENT | &#x274C; |
 | STOP_EVENT | &#x274C; |
 
-## Supported data type
+## Supported MySQL data type
 
 ### Numeric type
 
