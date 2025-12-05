@@ -1,7 +1,8 @@
 # MySQL Replicator
 
-This library is handler for MySQL binlog events using MySQL Replication Protocol.
-And this library is written by Ruby, so you can install from RubyGems.
+`MysqlReplicator` gem is a library for processing MySQL Binlog events using the MySQL replication protocol.
+
+And also, this is lightweight because only depend on the Ruby standard library.
 
 ## Installation
 
@@ -9,6 +10,12 @@ Install the gem and add to the application's Gemfile by executing:
 
 ```bash
 bundle add mysql_replicator
+```
+
+You can of course add a gem call in your Gemfile yourself.
+
+```bash
+gem 'mysql_replicator'
 ```
 
 If bundler is not being used to manage dependencies, install the gem by executing:
@@ -21,30 +28,79 @@ gem install mysql_replicator
 
 ```rb
 # Custom logger available
-MysqlReplicator.logger = custom_logger
+MysqlReplicator.logger = your_custom_logger
 
-# Connection to MySQL server
-conn = MysqlReplicator::Connection.new(
+# Connect to MySQL server, and start to handle replication event
+MysqlReplicator.run(
   host: 'your_mysql_host', # default localhost
   port: 3307,              # default 3306
   user: 'username',        # default root
   password: 'password',    # default empty string
   database: 'test'         # default empty string
-)
+) do |binlog_event|
+    # write code to process binlog event
 
-# Start replication and receive binlog event
-MysqlReplicator::BinlogClient,new(conn)
-  .start_replcation
-  .handle_binlog_event do |binlog_event|
-    # some processing binlog event...
+    puts binlog_event[:timestamp]
+    # => 2025-12-01 12:00:00
+
+    puts binlog_event[:event_type]
+    # => :WRITE_ROWS
+
+    puts binlog_event[:execution]
+    # => {
+    #   table_id: 10,
+    #   flags: 0,
+    #   extra_data_length: 0,
+    #   column_count: 2,
+    #   rows: [
+    #     {
+    #        ordinal_position: 1,
+    #        data_type: 'int',
+    #        column_name: 'id',
+    #        value: 1,
+    #        primary_key: true
+    #     },
+    #     {
+    #        ordinal_position: 2,
+    #        data_type: 'varchar',
+    #        column_name: 'name',
+    #        value: 'alice',
+    #        primary_key: false
+    #     }
+    #   ]
+    # }
   end
 ```
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+Start MySQL server.
+```
+$ docker compose up
+```
 
-To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and the created tag, and push the `.gem` file to [rubygems.org](https://rubygems.org).
+Start MysqlReplicator to check if local code works.
+```rb
+irb(main):001> MysqlReplicator.run(database: 'test') { |evt| puts evt }
+```
+
+Submit sample DDL and query to MySQL server.
+Check `spec/supports/sql`.
+
+Run spec for test.
+```
+$ bundle exec rspec
+```
+
+Run rubocop for linter.
+```
+$ bundle exec rubocop
+```
+
+Run steep for type check.
+```
+$ bundle exec steep check
+```
 
 ## Contributing
 
