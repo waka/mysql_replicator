@@ -72,6 +72,99 @@ MysqlReplicator.run(
   end
 ```
 
+## Supported event
+
+| Event type | |
+| :--- | :---: |
+| ROTATE_EVENT | &#x2705; |
+| FORMAT_DESCRIPTION_EVENT | &#x2705; |
+| QUERY_EVENT | &#x2705; |
+| TABLE_MAP_EVENT | &#x2705; |
+| WRITE_ROWS_EVENT (V2) | &#x2705; |
+| UPDATE_ROWS_EVENT (V2) | &#x2705; |
+| DELETE_ROWS_EVENT (V2) | &#x2705; |
+| XID_EVENT | &#x2705; |
+| GTID_LOG_EVENT | &#x274C; |
+| PREVIOUS_GTIDS_LOG_EVENT | &#x274C; |
+| HEARTBEAT_LOG_EVENT | &#x274C; |
+| STOP_EVENT | &#x274C; |
+
+## Supported MySQL data type
+
+### Numeric type
+
+| MySQL type | |
+| :--- | :---: |
+| TINYINT | &#x2705; |
+| SMALLINT | &#x2705; |
+| MEDIUMINT | &#x2705; |
+| INT | &#x2705; |
+| BIGINT | &#x2705; |
+| FLOAT | &#x2705; |
+| DOUBLE | &#x2705; |
+| DECIMAL | &#x2705; |
+| BIT | &#x274C; |
+
+### String type
+
+| MySQL type | |
+| :--- | :---: |
+| CHAR | &#x2705; |
+| VARCHAR | &#x2705; |
+| TINYTEXT | &#x2705; |
+| TEXT | &#x2705; |
+| MEDIUMTEXT | &#x2705; |
+| LONGTEXT | &#x2705; |
+| ENUM | &#x2705; |
+| SET | &#x274C; |
+
+### Binary type
+
+| MySQL type | |
+| :--- | :---: |
+| BINARY | &#x2705; |
+| VARBINARY | &#x2705; |
+| TINYBLOB | &#x2705; |
+| BLOB | &#x2705; |
+| MEDIUMBLOB | &#x2705; |
+| LONGBLOB | &#x2705; |
+
+### Date and Time type
+
+| MySQL type | |
+| :--- | :---: |
+| DATE | &#x2705; |
+| TIME | &#x2705; |
+| DATETIME | &#x2705; |
+| TIMESTAMP | &#x2705; |
+| YEAR | &#x274C; |
+
+### Special type
+
+| MySQL type | |
+| :--- | :---: |
+| JSON | &#x2705; |
+| GEOMETRY | &#x274C; |
+
+## Supported Binary JSON value type
+
+| JSON value type | |
+| :--- | :---: |
+| SMALL_OBJECT | &#x2705; |
+| LARGE_OBJECT | &#x2705; |
+| SMALL_ARRAY | &#x2705; |
+| LARGE_ARRAY | &#x2705; |
+| LITERAL (null / true / false) | &#x2705; |
+| INT16 | &#x2705; |
+| UINT16 | &#x2705; |
+| INT32 | &#x2705; |
+| UINT32 | &#x2705; |
+| INT64 | &#x2705; |
+| UINT64 | &#x2705; |
+| DOUBLE | &#x2705; |
+| STRING | &#x2705; |
+| OPAQUE | &#x274C; |
+
 ## Development
 
 Start MySQL server.
