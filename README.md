@@ -4,6 +4,11 @@
 
 And also, this is lightweight because only depend on the Ruby standard library.
 
+## Support version
+
+- MySQL >= 8.0
+- Ruby >= 3.3
+
 ## Installation
 
 Install the gem and add to the application's Gemfile by executing:
@@ -70,6 +75,20 @@ MysqlReplicator.run(
     #   ]
     # }
   end
+
+# or Run manually
+conn = MysqlReplicator::Connection.new(
+  host: 'your_mysql_host', # default localhost
+  port: 3307,              # default 3306
+  user: 'username',        # default root
+  password: 'password',    # default empty string
+  database: 'test'         # default empty string
+)
+client = MysqlReplicator::BinlogClient.new(conn)
+client.on do |binlog_event|
+  # write code to process binlog event
+end
+client.start_replication
 ```
 
 ## Supported event
