@@ -31,11 +31,10 @@ gem install mysql_replicator
 
 ## Usage
 
-```rb
-# Custom logger available
-MysqlReplicator.logger = your_custom_logger
+Run with convenience method.
 
-# Connect to MySQL server, and start to handle replication event
+```rb
+# `run` method: Connect to MySQL server, and start to handle replication event
 MysqlReplicator.run(
   host: 'your_mysql_host', # default localhost
   port: 3307,              # default 3306
@@ -43,40 +42,14 @@ MysqlReplicator.run(
   password: 'password',    # default empty string
   database: 'test'         # default empty string
 ) do |binlog_event|
-    # write code to process binlog event
+  # write code to process binlog event
+end
+```
 
-    puts binlog_event[:timestamp]
-    # => 2025-12-01 12:00:00
+Or run with interface manually.
 
-    puts binlog_event[:event_type]
-    # => :WRITE_ROWS
-
-    puts binlog_event[:execution]
-    # => {
-    #   table_id: 10,
-    #   flags: 0,
-    #   extra_data_length: 0,
-    #   column_count: 2,
-    #   rows: [
-    #     {
-    #        ordinal_position: 1,
-    #        data_type: 'int',
-    #        column_name: 'id',
-    #        value: 1,
-    #        primary_key: true
-    #     },
-    #     {
-    #        ordinal_position: 2,
-    #        data_type: 'varchar',
-    #        column_name: 'name',
-    #        value: 'alice',
-    #        primary_key: false
-    #     }
-    #   ]
-    # }
-  end
-
-# or Run manually
+```rb
+# create connection to MySQL server
 conn = MysqlReplicator::Connection.new(
   host: 'your_mysql_host', # default localhost
   port: 3307,              # default 3306
@@ -84,11 +57,159 @@ conn = MysqlReplicator::Connection.new(
   password: 'password',    # default empty string
   database: 'test'         # default empty string
 )
+# create binlog client
 client = MysqlReplicator::BinlogClient.new(conn)
+# set binlog event handler
 client.on do |binlog_event|
   # write code to process binlog event
 end
+# start replication
 client.start_replication
+```
+
+If you run a create table and insert query.
+```
+CREATE TABLE users (name VARCHAR(255));
+INSERT INTO users VALUES ('alice');
+```
+
+MysqlReplicator received `binlog_event` with `:WRITE_ROWS` event.  
+When INSERT query, you can get inserted row data.
+```rb
+puts binlog_event
+# =>
+{
+  timestamp: "2025-12-01 12:00:00",
+  event_type: :WRITE_ROWS,
+  server_id: 1,
+  execution: {
+    table_id: 10,
+    flags: 0,
+    extra_data_length: 0,
+    column_count: 2,
+    rows: [
+      {
+         ordinal_position: 1,
+         data_type: 'int',
+         column_name: 'id',
+         value: 1,
+         primary_key: true
+      },
+      {
+         ordinal_position: 2,
+         data_type: 'varchar',
+         column_name: 'name',
+         value: 'alice',
+         primary_key: false
+      }
+    ]
+  }
+}
+```
+
+If you run the update query.
+```
+UPDATE users SET name = 'bob' WHERE id = 1;
+```
+
+MysqlReplicator received `binlog_event` with `:UPDATE_ROWS` event.  
+When UPDATE query, you can get row data before and after the change.
+```rb
+puts binlog_event
+# =>
+{
+  timestamp: "2025-12-01 12:01:00",
+  event_type: :UPDATE_ROWS,
+  server_id: 1,
+  execution: {
+    table_id: 10,
+    flags: 0,
+    extra_data_length: 0,
+    column_count: 2,
+    rows: [
+      {
+        before: [
+          {
+            ordinal_position: 1,
+            data_type: 'int',
+            column_name: 'id',
+            value: 1,
+            primary_key: true
+          },
+          {
+            ordinal_position: 2,
+            data_type: 'varchar',
+            column_name: 'name',
+            value: 'alice', # before name
+            primary_key: false
+          }
+        ],
+        after: [
+          {
+            ordinal_position: 1,
+            data_type: 'int',
+            column_name: 'id',
+            value: 1,
+            primary_key: true
+          },
+          {
+            ordinal_position: 2,
+            data_type: 'varchar',
+            column_name: 'name',
+            value: 'bob', # after name
+            primary_key: false
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+If you run the delete query.
+```
+DELETE FROM users WHERE id = 1;
+```
+
+MysqlReplicator received `binlog_event` with `:DELETE_ROWS` event.  
+When DELETE query, you can get row data before and after the change.
+```rb
+puts binlog_event
+# =>
+{
+  timestamp: "2025-12-01 12:02:00",
+  event_type: :DELETE_ROWS,
+  server_id: 1,
+  execution: {
+    table_id: 10,
+    flags: 0,
+    extra_data_length: 0,
+    column_count: 2,
+    rows: [
+      {
+         ordinal_position: 1,
+         data_type: 'int',
+         column_name: 'id',
+         value: 1,
+         primary_key: true
+      },
+      {
+         ordinal_position: 2,
+         data_type: 'varchar',
+         column_name: 'name',
+         value: 'bob',
+         primary_key: false
+      }
+    ]
+  }
+}
+```
+
+If you want to use your custom logger.
+
+```rb
+# Custom logger available
+MysqlReplicator.logger = your_custom_logger
 ```
 
 ## Supported event
