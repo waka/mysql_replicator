@@ -1,6 +1,6 @@
 # MySQL Replicator
 
-`MysqlReplicator` gem is a library for processing MySQL Binlog events using the MySQL replication protocol.
+`MysqlReplicator` gem is a library for processing MySQL Binlog events with [MySQL Replication Protocol](https://dev.mysql.com/doc/dev/mysql-server/9.5.0/page_protocol_replication.html).
 
 And also, this is lightweight because only depend on the Ruby standard library.
 
@@ -69,7 +69,12 @@ client.start_replication
 
 If you run a create table and insert query.
 ```
-CREATE TABLE users (name VARCHAR(255));
+CREATE TABLE users (
+  id INT NOT NULL AUTO_INCREMENT,
+  name VARCHAR(255),
+  PRIMARY KEY (id)
+);
+
 INSERT INTO users VALUES ('alice');
 ```
 
