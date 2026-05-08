@@ -52,6 +52,18 @@ RSpec.describe MysqlReplicator::Binlogs::RowsEventParser do
       )
     end
 
+    context 'database' do
+      it do
+        expect(subject[:database]).to eq('test')
+      end
+    end
+
+    context 'table' do
+      it do
+        expect(subject[:table]).to eq('tests')
+      end
+    end
+
     context 'table_id' do
       it do
         expect(subject[:table_id]).to eq(91)

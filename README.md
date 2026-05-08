@@ -88,6 +88,8 @@ puts binlog_event
   event_type: :WRITE_ROWS,
   server_id: 1,
   execution: {
+    database: 'example',
+    table: 'users',
     table_id: 10,
     flags: 0,
     extra_data_length: 0,
@@ -127,6 +129,8 @@ puts binlog_event
   event_type: :UPDATE_ROWS,
   server_id: 1,
   execution: {
+    database: 'example',
+    table: 'users',
     table_id: 10,
     flags: 0,
     extra_data_length: 0,
@@ -186,6 +190,8 @@ puts binlog_event
   event_type: :DELETE_ROWS,
   server_id: 1,
   execution: {
+    database: 'example',
+    table: 'users',
     table_id: 10,
     flags: 0,
     extra_data_length: 0,

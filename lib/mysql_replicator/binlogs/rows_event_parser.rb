@@ -17,6 +17,8 @@ module MysqlReplicator
 
       # @rbs!
       #   type execution = {
+      #     database: String | nil,
+      #     table: String | nil,
       #     table_id: Integer,
       #     flags: Integer,
       #     extra_data_length: Integer,
@@ -26,7 +28,7 @@ module MysqlReplicator
 
       # @rbs event_type: :WRITE_ROWS | :UPDATE_ROWS | :DELETE_ROWS
       # @rbs payload: String
-      # @rbs checksum_enabled bool
+      # @rbs checksum_enabled: bool
       # @rbs table_map: Hash[Integer, MysqlReplicator::Binlogs::TableMapEventParser::execution]
       # @rbs return: execution
       def self.parse(event_type, payload, checksum_enabled, table_map)
@@ -70,6 +72,8 @@ module MysqlReplicator
         end
 
         {
+          database: table_def[:database],
+          table: table_def[:table],
           table_id: table_id,
           flags: flags,
           extra_data_length: extra_data_length,
