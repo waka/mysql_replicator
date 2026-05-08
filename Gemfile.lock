@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    mysql_replicator (0.1.0)
+    mysql_replicator (0.2.0)
       bigdecimal (~> 3.0)
       logger (~> 1.0)
 
