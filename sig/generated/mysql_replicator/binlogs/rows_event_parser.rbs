@@ -5,14 +5,14 @@ module MysqlReplicator
     class RowsEventParser
       type rowData = { ordinal_position: Integer, data_type: String, column_name: String, value: String | Integer | bool | nil, primary_key: bool }
 
-      type execution = { table_id: Integer, flags: Integer, extra_data_length: Integer, column_count: Integer, rows: Array[rowData] }
+      type execution = { database: String?, table: String?, table_id: Integer, flags: Integer, extra_data_length: Integer, column_count: Integer, rows: Array[rowData] }
 
       # @rbs event_type: :WRITE_ROWS | :UPDATE_ROWS | :DELETE_ROWS
       # @rbs payload: String
       # @rbs checksum_enabled bool
       # @rbs table_map: Hash[Integer, MysqlReplicator::Binlogs::TableMapEventParser::execution]
       # @rbs return: execution
-      def self.parse: (:WRITE_ROWS | :UPDATE_ROWS | :DELETE_ROWS event_type, String payload, bool checksum_enabled, Hash[Integer, MysqlReplicator::Binlogs::TableMapEventParser::execution] table_map) -> execution
+      def self.parse: (:WRITE_ROWS | :UPDATE_ROWS | :DELETE_ROWS event_type, String payload, bool checksum_enabled, Hash[Integer, MysqlReplicator::Binlogs::TableMapEventParser::execution] table_map) -> { database: String?, table: String?, table_id: Integer, flags: Integer, extra_data_length: Integer, column_count: Integer, rows: Array[untyped] }
 
       # @rbs io: StringIO
       # @rbs column_count: Integer

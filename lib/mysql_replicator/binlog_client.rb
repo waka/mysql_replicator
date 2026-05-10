@@ -44,7 +44,7 @@ module MysqlReplicator
       rescue Interrupt
         # Ctrl+Cによる正常終了
       rescue => e
-        raise if defined?(IRB::Abort) && e.is_a?(IRB::Abort)
+        raise e if defined?(::IRB::Abort) && e.is_a?(::IRB::Abort) # steep:ignore UnknownConstant
 
         MysqlReplicator::Logger.error \
           "Unexpected error: #{e.message},\n" \
