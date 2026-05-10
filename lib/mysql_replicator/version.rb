@@ -2,5 +2,5 @@
 # rbs_inline: enabled
 
 module MysqlReplicator
-  VERSION = '0.2.0' #: String
+  VERSION = '0.3.0' #: String
 end
