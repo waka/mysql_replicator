@@ -186,7 +186,7 @@ module MysqlReplicator
 
       begin
         # Read all unread data in non-blocking mode
-        while @socket.ready?
+        while @socket.wait_readable(0)
           data = @socket.read_nonblock(1024)
           flushed_data += data
           MysqlReplicator::Logger.debug \

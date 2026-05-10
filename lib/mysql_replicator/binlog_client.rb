@@ -7,7 +7,7 @@ module MysqlReplicator
     # @rbs @connection: MysqlReplicator::Connection
     # @rbs @server_id: Integer
     # @rbs @checksum_type: String?
-    # @rbs @event_listener: ^(MysqlReplicator::Binlogs::EventParser::binlogEvent) -> untyped | nil
+    # @rbs @event_listener: ^(MysqlReplicator::Binlogs::EventParser::binlogEvent?, Exception?) -> untyped | nil
 
     # @rbs! attr_reader connection: MysqlReplicator::Connection
     attr_reader :connection
@@ -21,7 +21,7 @@ module MysqlReplicator
       @checksum_type = nil
     end
 
-    # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent) -> untyped | nil }
+    # @rbs &block: { (MysqlReplicator::Binlogs::EventParser::binlogEvent?, Exception?) -> untyped | nil }
     # @rbs return: void
     def on(&block)
       @event_listener = block
@@ -49,6 +49,7 @@ module MysqlReplicator
           "Backtrace: #{e.backtrace.first(5).join("\n")}"
 
         stop_replication
+        @event_listener&.call(nil, e)
       end
     end
 
@@ -180,8 +181,8 @@ module MysqlReplicator
           binlog_event = event_parser.execute(payload[1..], @connection, @checksum_type == 'CRC32')
 
           case binlog_event[:event_type]
-          when :QUERY, :WRITE_ROWS, :UPDATE_ROWS, :DELETE_ROWS
-            @event_listener&.call(binlog_event)
+          when :QUERY, :TABLE_MAP, :WRITE_ROWS, :UPDATE_ROWS, :DELETE_ROWS
+            @event_listener&.call(binlog_event, nil)
           end
           MysqlReplicator::Logger.debug "Binlog event: #{binlog_event}"
         when 0xFF
