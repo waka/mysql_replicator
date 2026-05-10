@@ -35,21 +35,24 @@ module MysqlReplicator
       binlog_file = binlog_info[:file]
       binlog_position = binlog_info[:position]
 
-      configure_binlog_checksum if @checksum_type.nil?
+      configure_binlog_checksum
       register_as_slave
       start_binlog_dump(binlog_file, binlog_position)
 
       begin
         handle_binlog_events
       rescue Interrupt
-        stop_replication
+        # Ctrl+Cによる正常終了
       rescue => e
+        raise if defined?(IRB::Abort) && e.is_a?(IRB::Abort)
+
         MysqlReplicator::Logger.error \
           "Unexpected error: #{e.message},\n" \
           "Backtrace: #{e.backtrace.first(5).join("\n")}"
 
-        stop_replication
         @event_listener&.call(nil, e)
+      ensure
+        stop_replication
       end
     end
 
@@ -57,6 +60,9 @@ module MysqlReplicator
     def stop_replication
       @connection.flush_socket_buffer
       unregister_as_slave
+    rescue => e
+      MysqlReplicator::Logger.error "Failed to unregister as slave: #{e.message}"
+    ensure
       @connection.close
     end
 
